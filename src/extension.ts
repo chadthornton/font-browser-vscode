@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
-import { TypePickerViewProvider } from './TypePickerViewProvider';
+import { FontBrowserViewProvider } from './FontBrowserViewProvider';
 
 export function activate(context: vscode.ExtensionContext) {
-  const provider = new TypePickerViewProvider(context.extensionUri);
+  const provider = new FontBrowserViewProvider(context.extensionUri);
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
-      TypePickerViewProvider.viewType,
+      FontBrowserViewProvider.viewType,
       provider,
       {
         webviewOptions: {
@@ -17,7 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('typePicker.refresh', () => {
+    vscode.commands.registerCommand('fontBrowser.refresh', () => {
       provider.refresh();
     })
   );

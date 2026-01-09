@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import { getWebviewContent } from './webview/getWebviewContent';
 import { getSystemFonts } from './fonts';
 
-export class TypePickerViewProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = 'typePicker.mainView';
+export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
+  public static readonly viewType = 'fontBrowser.mainView';
 
   private _view?: vscode.WebviewView;
   private _previousSettings?: ReturnType<typeof this._getCurrentSettings>;
@@ -29,7 +29,7 @@ export class TypePickerViewProvider implements vscode.WebviewViewProvider {
 
     // Send initial data to webview
     this._sendInitialData().catch(err => {
-      console.error('Type Picker: Failed to send initial data:', err);
+      console.error('Font Browser: Failed to send initial data:', err);
     });
 
     // Handle messages from the webview

@@ -1,7 +1,7 @@
 {
-  "name": "type-picker",
-  "displayName": "Type Picker",
-  "description": "Pick and preview typefaces for VS Code editor and terminal",
+  "name": "font-browser",
+  "displayName": "Font Browser",
+  "description": "Browse and preview fonts for VS Code editor and terminal",
   "version": "0.0.1",
   "publisher": "chadthornton",
   "engines": {
@@ -20,34 +20,34 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "typePicker",
-          "title": "Type Picker",
-          "icon": "resources/type-picker-icon.svg"
+          "id": "fontBrowser",
+          "title": "Font Browser",
+          "icon": "resources/font-browser-icon.svg"
         }
       ]
     },
     "views": {
-      "typePicker": [
+      "fontBrowser": [
         {
           "type": "webview",
-          "id": "typePicker.mainView",
-          "name": "Typefaces"
+          "id": "fontBrowser.mainView",
+          "name": "Fonts"
         }
       ]
     },
     "commands": [
       {
-        "command": "typePicker.refresh",
+        "command": "fontBrowser.refresh",
         "title": "Refresh Font List",
         "icon": "$(refresh)",
-        "category": "Type Picker"
+        "category": "Font Browser"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "typePicker.refresh",
-          "when": "view == typePicker.mainView",
+          "command": "fontBrowser.refresh",
+          "when": "view == fontBrowser.mainView",
           "group": "navigation"
         }
       ]
