@@ -7,6 +7,10 @@
   "engines": {
     "vscode": "^1.85.0"
   },
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
   "categories": [
     "Other"
   ],
@@ -18,7 +22,7 @@
         {
           "id": "typePicker",
           "title": "Type Picker",
-          "icon": "$(text-size)"
+          "icon": "resources/type-picker-icon.svg"
         }
       ]
     },

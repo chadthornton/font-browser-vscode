@@ -35,8 +35,8 @@ export function getWebviewContent(
     .tab-container {
       display: flex;
       gap: 0;
-      margin-bottom: 8px;
       border-bottom: 1px solid var(--vscode-widget-border);
+      flex: 1;
     }
 
     .tab {
@@ -163,25 +163,13 @@ export function getWebviewContent(
 
     .control-row {
       display: flex;
-      gap: 12px;
+      gap: 6px;
       align-items: center;
       margin-bottom: 8px;
     }
 
     .control-row:last-child {
       margin-bottom: 0;
-    }
-
-    .control-group {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .control-label {
-      font-size: 11px;
-      color: var(--vscode-descriptionForeground);
-      min-width: 45px;
     }
 
     .size-input {
@@ -240,6 +228,12 @@ export function getWebviewContent(
       font-size: 12px;
     }
 
+    .preview-info {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+    }
+
     .loading {
       text-align: center;
       padding: 20px;
@@ -251,12 +245,127 @@ export function getWebviewContent(
       color: var(--vscode-descriptionForeground);
       margin-left: 4px;
     }
+
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+
+    .restore-btn {
+      position: relative;
+      background: transparent;
+      border: 1px solid var(--vscode-button-secondaryBackground);
+      color: var(--vscode-foreground);
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      opacity: 0.8;
+    }
+
+    .restore-btn:hover {
+      opacity: 1;
+      background: var(--vscode-button-secondaryHoverBackground);
+    }
+
+    .restore-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .restore-icon {
+      font-size: 12px;
+    }
+
+    .restore-tooltip {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
+      background: var(--vscode-editorWidget-background);
+      border: 1px solid var(--vscode-widget-border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      min-width: 220px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      z-index: 100;
+      display: none;
+      text-align: left;
+    }
+
+    .restore-btn:hover .restore-tooltip {
+      display: block;
+    }
+
+    .tooltip-title {
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--vscode-foreground);
+    }
+
+    .tooltip-section {
+      margin-bottom: 8px;
+    }
+
+    .tooltip-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .tooltip-section-title {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--vscode-descriptionForeground);
+      margin-bottom: 4px;
+    }
+
+    .tooltip-item {
+      font-size: 11px;
+      color: var(--vscode-foreground);
+      margin-bottom: 2px;
+    }
+
+    .tooltip-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .tooltip-value {
+      color: var(--vscode-textLink-foreground);
+    }
   </style>
 </head>
 <body>
-  <div class="tab-container">
-    <button class="tab active" data-tab="editor">Editor</button>
-    <button class="tab" data-tab="terminal">Terminal</button>
+  <div class="header-row">
+    <div class="tab-container">
+      <button class="tab active" data-tab="editor">Editor</button>
+      <button class="tab" data-tab="terminal">Terminal</button>
+    </div>
+    <button class="restore-btn" id="restore-btn" disabled>
+      <span class="restore-icon">↩</span>
+      Restore
+      <div class="restore-tooltip" id="restore-tooltip">
+        <div class="tooltip-title">Restore to previous selections</div>
+        <div class="tooltip-section">
+          <div class="tooltip-section-title">Editor</div>
+          <div class="tooltip-item">Font: <span class="tooltip-value" id="prev-editor-font">-</span></div>
+          <div class="tooltip-item">Size: <span class="tooltip-value" id="prev-editor-size">-</span></div>
+          <div class="tooltip-item">Weight: <span class="tooltip-value" id="prev-editor-weight">-</span></div>
+        </div>
+        <div class="tooltip-section">
+          <div class="tooltip-section-title">Terminal</div>
+          <div class="tooltip-item">Font: <span class="tooltip-value" id="prev-terminal-font">-</span></div>
+          <div class="tooltip-item">Size: <span class="tooltip-value" id="prev-terminal-size">-</span></div>
+          <div class="tooltip-item">Weight: <span class="tooltip-value" id="prev-terminal-weight">-</span></div>
+        </div>
+      </div>
+    </button>
   </div>
 
   <div id="editor-tab" class="tab-content active">
@@ -266,15 +375,11 @@ export function getWebviewContent(
     </div>
     <div class="controls">
       <div class="control-row">
-        <div class="control-group">
-          <label class="control-label">Size</label>
-          <input type="number" class="size-input" id="editor-size" min="8" max="72" step="1">
-          <span class="unit-label">px</span>
-        </div>
-        <div class="control-group">
-          <label class="control-label">Weight</label>
-          <select class="weight-select" id="editor-weight"></select>
-        </div>
+        <input type="number" class="size-input" id="editor-size" min="8" max="72" step="1">
+        <span class="unit-label">px</span>
+      </div>
+      <div class="control-row">
+        <select class="weight-select" id="editor-weight"></select>
       </div>
     </div>
   </div>
@@ -286,15 +391,11 @@ export function getWebviewContent(
     </div>
     <div class="controls">
       <div class="control-row">
-        <div class="control-group">
-          <label class="control-label">Size</label>
-          <input type="number" class="size-input" id="terminal-size" min="8" max="72" step="1">
-          <span class="unit-label">px</span>
-        </div>
-        <div class="control-group">
-          <label class="control-label">Weight</label>
-          <select class="weight-select" id="terminal-weight"></select>
-        </div>
+        <input type="number" class="size-input" id="terminal-size" min="8" max="72" step="1">
+        <span class="unit-label">px</span>
+      </div>
+      <div class="control-row">
+        <select class="weight-select" id="terminal-weight"></select>
       </div>
     </div>
   </div>
@@ -302,12 +403,14 @@ export function getWebviewContent(
   <div class="preview-section">
     <div class="preview-text" id="preview"></div>
   </div>
+  <div class="preview-info" id="preview-info"></div>
 
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
 
     let fonts = [];
     let settings = {};
+    let previousSettings = null;
     let selectedPreviewFont = null;
     let currentEditorFont = null;
     let currentTerminalFont = null;
@@ -588,7 +691,55 @@ fn main() { println!("Hi"); }
         preview.textContent = '';
         preview.className = 'preview-text preview-empty';
       }
+
+      // Update preview info with font name
+      const previewInfo = document.getElementById('preview-info');
+      const fontName = selectedPreviewFont || extractFontFamily(fontToPreview);
+      previewInfo.textContent = fontName && fontName !== 'monospace' ? fontName : '';
     }
+
+    function updateRestoreButton() {
+      const btn = document.getElementById('restore-btn');
+      if (!previousSettings) {
+        btn.disabled = true;
+        return;
+      }
+
+      // Check if current settings differ from previous
+      const hasChanges =
+        settings.editorFont !== previousSettings.editorFont ||
+        settings.terminalFont !== previousSettings.terminalFont ||
+        settings.editorFontSize !== previousSettings.editorFontSize ||
+        settings.terminalFontSize !== previousSettings.terminalFontSize ||
+        settings.editorFontWeight !== previousSettings.editorFontWeight ||
+        settings.terminalFontWeight !== previousSettings.terminalFontWeight;
+
+      btn.disabled = !hasChanges;
+
+      // Update tooltip content
+      document.getElementById('prev-editor-font').textContent = extractFontFamily(previousSettings.editorFont) || 'Default';
+      document.getElementById('prev-editor-size').textContent = previousSettings.editorFontSize + 'px';
+      document.getElementById('prev-editor-weight').textContent = formatWeight(previousSettings.editorFontWeight);
+      document.getElementById('prev-terminal-font').textContent = extractFontFamily(previousSettings.terminalFont) || 'Default';
+      document.getElementById('prev-terminal-size').textContent = previousSettings.terminalFontSize + 'px';
+      document.getElementById('prev-terminal-weight').textContent = formatWeight(previousSettings.terminalFontWeight);
+    }
+
+    function formatWeight(weight) {
+      if (!weight || weight === 'normal') return '400 Regular';
+      if (weight === 'bold') return '700 Bold';
+      const labels = {
+        '100': 'Thin', '200': 'ExtraLight', '300': 'Light',
+        '400': 'Regular', '500': 'Medium', '600': 'SemiBold',
+        '700': 'Bold', '800': 'ExtraBold', '900': 'Black'
+      };
+      return weight + ' ' + (labels[weight] || '');
+    }
+
+    // Restore button click handler
+    document.getElementById('restore-btn').addEventListener('click', () => {
+      vscode.postMessage({ command: 'restoreSettings' });
+    });
 
     // Handle messages from extension
     window.addEventListener('message', event => {
@@ -598,11 +749,18 @@ fn main() { println!("Hi"); }
         case 'init':
           fonts = message.fonts;
           settings = message.settings;
+          previousSettings = message.previousSettings;
           updateUI();
+          updateRestoreButton();
           break;
         case 'settingsUpdated':
           settings = message.settings;
           updateUI();
+          updateRestoreButton();
+          break;
+        case 'previousSettingsUpdated':
+          previousSettings = message.previousSettings;
+          updateRestoreButton();
           break;
       }
     });

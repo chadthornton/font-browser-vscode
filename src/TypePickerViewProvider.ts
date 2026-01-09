@@ -6,6 +6,7 @@ export class TypePickerViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'typePicker.mainView';
 
   private _view?: vscode.WebviewView;
+  private _previousSettings?: ReturnType<typeof this._getCurrentSettings>;
 
   constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -27,7 +28,9 @@ export class TypePickerViewProvider implements vscode.WebviewViewProvider {
     );
 
     // Send initial data to webview
-    this._sendInitialData();
+    this._sendInitialData().catch(err => {
+      console.error('Type Picker: Failed to send initial data:', err);
+    });
 
     // Handle messages from the webview
     webviewView.webview.onDidReceiveMessage(async (message) => {
@@ -56,6 +59,9 @@ export class TypePickerViewProvider implements vscode.WebviewViewProvider {
           break;
         case 'getSettings':
           this._sendCurrentSettings();
+          break;
+        case 'restoreSettings':
+          await this._restoreSettings();
           break;
       }
     });
@@ -87,10 +93,16 @@ export class TypePickerViewProvider implements vscode.WebviewViewProvider {
     const fonts = await getSystemFonts();
     const settings = this._getCurrentSettings();
 
+    // Capture previous settings on first load
+    if (!this._previousSettings) {
+      this._previousSettings = { ...settings };
+    }
+
     this._view.webview.postMessage({
       command: 'init',
       fonts,
       settings,
+      previousSettings: this._previousSettings,
     });
   }
 
@@ -118,5 +130,31 @@ export class TypePickerViewProvider implements vscode.WebviewViewProvider {
   private async _updateSetting(key: string, value: string | number) {
     const config = vscode.workspace.getConfiguration();
     await config.update(key, value, vscode.ConfigurationTarget.Global);
+  }
+
+  private async _restoreSettings() {
+    if (!this._previousSettings) return;
+
+    const currentSettings = this._getCurrentSettings();
+
+    // Restore all settings to previous values
+    await this._updateSetting('editor.fontFamily', this._previousSettings.editorFont);
+    await this._updateSetting('terminal.integrated.fontFamily', this._previousSettings.terminalFont);
+    await this._updateSetting('editor.fontSize', this._previousSettings.editorFontSize);
+    await this._updateSetting('terminal.integrated.fontSize', this._previousSettings.terminalFontSize);
+    await this._updateSetting('editor.fontWeight', this._previousSettings.editorFontWeight);
+    await this._updateSetting('terminal.integrated.fontWeight', this._previousSettings.terminalFontWeight);
+
+    // Update previous settings to what we just restored from
+    // so user can toggle back if they want
+    this._previousSettings = currentSettings;
+
+    // Send updated previous settings to webview
+    if (this._view) {
+      this._view.webview.postMessage({
+        command: 'previousSettingsUpdated',
+        previousSettings: this._previousSettings,
+      });
+    }
   }
 }

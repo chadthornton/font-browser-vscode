@@ -89,7 +89,9 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
 
   if (process.platform === 'darwin' || process.platform === 'linux') {
     try {
-      const { stdout } = await execAsync('fc-list : family style weight 2>/dev/null');
+      const { stdout } = await execAsync('fc-list : family style weight 2>/dev/null', {
+        maxBuffer: 10 * 1024 * 1024, // 10MB buffer for systems with many fonts
+      });
 
       for (const line of stdout.split('\n')) {
         if (!line.trim()) continue;
