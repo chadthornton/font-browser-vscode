@@ -227,7 +227,7 @@ export function getWebviewContent(
       background: var(--vscode-editor-background);
       border: 1px solid var(--vscode-widget-border);
       border-radius: 4px;
-      min-height: 120px;
+      height: 180px;
       flex-shrink: 0;
       overflow-y: auto;
     }
