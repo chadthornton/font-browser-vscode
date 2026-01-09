@@ -2,7 +2,7 @@
   "name": "font-browser",
   "displayName": "Font Browser",
   "description": "Browse and preview fonts for VS Code editor and terminal",
-  "version": "0.0.1",
+  "version": "0.0.7",
   "publisher": "chadthornton",
   "engines": {
     "vscode": "^1.85.0"
@@ -31,7 +31,7 @@
         {
           "type": "webview",
           "id": "fontBrowser.mainView",
-          "name": "Fonts"
+          "name": ""
         }
       ]
     },
