@@ -24,19 +24,26 @@ export function getWebviewContent(
       padding: 0;
     }
 
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
     body {
       padding: var(--vscode-spacing);
       font-family: var(--vscode-font-family);
       font-size: var(--vscode-font-size);
       color: var(--vscode-foreground);
       background: var(--vscode-sideBar-background);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
     .tab-container {
       display: flex;
       gap: 0;
       border-bottom: 1px solid var(--vscode-widget-border);
-      flex: 1;
     }
 
     .tab {
@@ -62,10 +69,14 @@ export function getWebviewContent(
 
     .tab-content {
       display: none;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
     }
 
     .tab-content.active {
-      display: block;
+      display: flex;
     }
 
     .search-box {
@@ -77,6 +88,7 @@ export function getWebviewContent(
       border: 1px solid var(--vscode-input-border);
       border-radius: 4px;
       font-size: 12px;
+      flex-shrink: 0;
     }
 
     .search-box:focus {
@@ -89,7 +101,8 @@ export function getWebviewContent(
     }
 
     .font-list {
-      max-height: 240px;
+      flex: 1;
+      min-height: 100px;
       overflow-y: auto;
       border: 1px solid var(--vscode-widget-border);
       border-radius: 4px;
@@ -156,9 +169,9 @@ export function getWebviewContent(
     }
 
     .controls {
-      margin: 12px 0;
-      padding: 10px 0;
-      border-top: 1px solid var(--vscode-widget-border);
+      margin: 8px 0;
+      padding: 0;
+      flex-shrink: 0;
     }
 
     .control-row {
@@ -210,16 +223,20 @@ export function getWebviewContent(
 
     .preview-section {
       padding: 12px;
+      margin-top: 8px;
       background: var(--vscode-editor-background);
       border: 1px solid var(--vscode-widget-border);
       border-radius: 4px;
-      min-height: 80px;
+      min-height: 120px;
+      flex-shrink: 0;
+      overflow-y: auto;
     }
 
     .preview-text {
-      font-size: 16px;
-      line-height: 1.4;
-      white-space: pre;
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
 
     .preview-empty {
@@ -252,6 +269,7 @@ export function getWebviewContent(
       align-items: flex-end;
       margin-bottom: 8px;
       gap: 8px;
+      flex-shrink: 0;
     }
 
     .restore-btn {
@@ -415,9 +433,15 @@ export function getWebviewContent(
     let currentEditorFont = null;
     let currentTerminalFont = null;
 
-    const PREVIEW_TEXT = \`const hello = "world";
-fn main() { println!("Hi"); }
-0O 1lI |!¡ {}[]() ≈≠≤≥\`;
+    // Canonical font specimen for programming fonts
+    // Tests: character disambiguation, ligatures, brackets, code patterns
+    const PREVIEW_TEXT = \`0O 1lI |!¡ {}[]() <>
+-> => != === <= >= ++ --
+const fn = (x) => x * 2;
+if (arr[0] !== null) { }
+"string" 'char' \\\`template\\\`
+THE QUICK BROWN FOX
+the lazy dog jumps\`;
 
     // Tab switching
     document.querySelectorAll('.tab').forEach(tab => {
