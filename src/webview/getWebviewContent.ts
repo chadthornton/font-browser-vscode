@@ -145,10 +145,6 @@ export function getWebviewContent(
       color: var(--vscode-list-activeSelectionForeground);
     }
 
-    .font-item.not-installed {
-      opacity: 0.4;
-    }
-
     .font-name {
       flex: 1;
       font-size: 13px;
@@ -255,12 +251,6 @@ export function getWebviewContent(
       text-align: center;
       padding: 20px;
       color: var(--vscode-descriptionForeground);
-    }
-
-    .italic-info {
-      font-size: 10px;
-      color: var(--vscode-descriptionForeground);
-      margin-left: 4px;
     }
 
     .header-row {
@@ -510,7 +500,7 @@ the lazy dog jumps\`;
         const option = document.createElement('option');
         option.value = w.value;
         const weightNum = w.value === 'normal' ? '400' : w.value === 'bold' ? '700' : w.value;
-        option.textContent = weightNum + ' ' + w.label + (w.hasItalic ? ' ✓italic' : '');
+        option.textContent = weightNum + ' ' + w.label;
         select.appendChild(option);
       });
 
@@ -577,7 +567,6 @@ the lazy dog jumps\`;
           const item = document.createElement('div');
           item.className = 'font-item';
           if (isSelected) item.classList.add('selected');
-          if (!font.isInstalled) item.classList.add('not-installed');
           item.dataset.font = font.name;
           item.dataset.target = target;
 
@@ -595,22 +584,8 @@ the lazy dog jumps\`;
             item.appendChild(vfBadge);
           }
 
-          if (!font.isInstalled) {
-            const badge = document.createElement('span');
-            badge.className = 'badge';
-            badge.textContent = 'Not installed';
-            item.appendChild(badge);
-          }
-
           // Click handler - apply font
           item.addEventListener('click', () => {
-            if (!font.isInstalled) {
-              // Just preview uninstalled fonts
-              selectedPreviewFont = font.name;
-              updatePreview();
-              return;
-            }
-
             const fontName = font.name;
             selectedPreviewFont = fontName;
 

@@ -105,6 +105,9 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
 
         if (familyMatch) {
           const family = familyMatch[1].trim();
+
+          // Skip macOS system fonts (prefixed with dot)
+          if (family.startsWith('.')) continue;
           const style = styleMatch ? styleMatch[1].toLowerCase() : '';
           const hasItalic = style.includes('italic') || style.includes('oblique');
 
@@ -302,27 +305,32 @@ export async function getSystemFonts(): Promise<FontInfo[]> {
     return weights;
   };
 
-  // Add fonts from curated lists
+  // Add installed fonts from curated lists (for proper categorization)
   for (const [category, fonts] of Object.entries(FONTS_BY_CATEGORY)) {
     for (const name of fonts) {
       const lowerName = name.toLowerCase();
       if (addedFamilies.has(lowerName)) continue;
 
       const isInstalled = installedLower.has(lowerName);
+      if (!isInstalled) continue; // Only show installed fonts
+
       addedFamilies.add(lowerName);
 
       result.push({
         name,
         category: category as FontCategory,
-        isInstalled,
-        isVariable: isInstalled ? isFontVariable(name) : false,
-        weights: isInstalled ? getWeightsForFont(name) : [{ value: 'normal', label: 'Regular', hasItalic: false }],
+        isInstalled: true,
+        isVariable: isFontVariable(name),
+        weights: getWeightsForFont(name),
       });
     }
   }
 
   // Add any installed fonts not in our curated list
   for (const family of installedFamilies) {
+    // Skip macOS system fonts (prefixed with dot)
+    if (family.startsWith('.')) continue;
+
     const lowerName = family.toLowerCase();
     if (addedFamilies.has(lowerName)) continue;
 
