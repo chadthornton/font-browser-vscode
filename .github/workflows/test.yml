@@ -1,0 +1,54 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile TypeScript
+        run: npm run compile
+
+      - name: Test font detection
+        run: |
+          node -e "
+            const { getSystemFonts } = require('./out/fonts');
+            getSystemFonts().then(fonts => {
+              console.log('Platform:', process.platform);
+              console.log('Fonts found:', fonts.length);
+              if (fonts.length === 0) {
+                console.error('ERROR: No fonts detected!');
+                process.exit(1);
+              }
+              console.log('Sample fonts:');
+              fonts.slice(0, 5).forEach(f => console.log('  -', f.name, '(' + f.category + ')'));
+              console.log('Monospace fonts:', fonts.filter(f => f.category === 'monospace').length);
+              console.log('Variable fonts:', fonts.filter(f => f.isVariable).length);
+              console.log('Ligature fonts:', fonts.filter(f => f.hasLigatures).length);
+            }).catch(err => {
+              console.error('Font detection failed:', err);
+              process.exit(1);
+            });
+          "
+
+      - name: Package extension
+        run: npx vsce package --no-dependencies
