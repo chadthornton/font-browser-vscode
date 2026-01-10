@@ -607,6 +607,7 @@ export function getWebviewContent(
     let settings = {};
     let previousSettings = null;
     let favorites = [];
+    let platform = '';
     let selectedPreviewFont = null;
     let currentEditorFont = null;
     let currentTerminalFont = null;
@@ -1050,6 +1051,15 @@ export function getWebviewContent(
           settings = message.settings;
           previousSettings = message.previousSettings;
           favorites = message.favorites || [];
+          platform = message.platform || '';
+
+          // Hide Variable filter on Windows (no variable font detection)
+          if (platform === 'win32') {
+            document.querySelectorAll('[data-filter="variable"]').forEach(el => {
+              el.style.display = 'none';
+            });
+          }
+
           updateUI();
           updateRestoreButton();
           break;

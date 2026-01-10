@@ -142,6 +142,7 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
       settings,
       previousSettings: this._previousSettings,
       favorites: this._getFavorites(),
+      platform: process.platform,
     });
   }
 
