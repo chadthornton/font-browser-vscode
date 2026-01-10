@@ -100,6 +100,118 @@ export function getWebviewContent(
       color: var(--vscode-input-placeholderForeground);
     }
 
+    .search-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+
+    .search-row .search-box {
+      margin-bottom: 0;
+      width: auto;
+      flex: 1;
+    }
+
+    .filter-toggle {
+      background: transparent;
+      border: 1px solid var(--vscode-input-border);
+      border-radius: 4px;
+      color: var(--vscode-foreground);
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+
+    .filter-toggle:hover {
+      opacity: 1;
+      background: var(--vscode-list-hoverBackground);
+    }
+
+    .filter-toggle.active {
+      opacity: 1;
+      background: var(--vscode-badge-background);
+      color: var(--vscode-badge-foreground);
+      border-color: var(--vscode-badge-background);
+    }
+
+    .filter-toggle.has-filters {
+      color: var(--vscode-textLink-foreground);
+    }
+
+    .filter-toggle.active.has-filters {
+      color: var(--vscode-badge-foreground);
+    }
+
+    .filter-panel {
+      display: none;
+      padding: 10px;
+      margin-bottom: 8px;
+      background: var(--vscode-input-background);
+      border: 1px solid var(--vscode-widget-border);
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .filter-panel.open {
+      display: block;
+    }
+
+    .filter-section {
+      margin-bottom: 10px;
+    }
+
+    .filter-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .filter-section-title {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--vscode-descriptionForeground);
+      margin-bottom: 6px;
+    }
+
+    .filter-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .filter-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      background: transparent;
+      border: 1px solid var(--vscode-widget-border);
+      border-radius: 12px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--vscode-foreground);
+      opacity: 0.7;
+    }
+
+    .filter-chip:hover {
+      opacity: 1;
+      background: var(--vscode-list-hoverBackground);
+    }
+
+    .filter-chip.selected {
+      opacity: 1;
+      background: var(--vscode-badge-background);
+      color: var(--vscode-badge-foreground);
+      border-color: var(--vscode-badge-background);
+    }
+
+    .filter-chip input {
+      display: none;
+    }
+
     .font-list {
       flex: 1;
       min-height: 100px;
@@ -148,20 +260,6 @@ export function getWebviewContent(
     .font-name {
       flex: 1;
       font-size: 13px;
-    }
-
-    .badge {
-      font-size: 9px;
-      padding: 1px 4px;
-      border-radius: 2px;
-      text-transform: uppercase;
-      background: var(--vscode-inputValidation-warningBackground);
-      color: var(--vscode-inputValidation-warningForeground);
-    }
-
-    .badge-variable {
-      background: var(--vscode-badge-background);
-      color: var(--vscode-badge-foreground);
     }
 
     .controls {
@@ -377,33 +475,95 @@ export function getWebviewContent(
   </div>
 
   <div id="editor-tab" class="tab-content active">
-    <input type="text" class="search-box" id="editor-search" placeholder="Search fonts...">
+    <div class="search-row">
+      <input type="text" class="search-box" id="editor-search" placeholder="Search...">
+      <button class="filter-toggle" id="editor-filter-toggle" title="Toggle filters">Filter</button>
+    </div>
+    <div class="filter-panel" id="editor-filter-panel">
+      <div class="filter-section">
+        <div class="filter-section-title">Category</div>
+        <div class="filter-options">
+          <label class="filter-chip selected" data-filter="category" data-value="monospace">
+            <input type="checkbox" checked> Monospace
+          </label>
+          <label class="filter-chip selected" data-filter="category" data-value="sans-serif">
+            <input type="checkbox" checked> Sans Serif
+          </label>
+          <label class="filter-chip selected" data-filter="category" data-value="serif">
+            <input type="checkbox" checked> Serif
+          </label>
+        </div>
+      </div>
+      <div class="filter-section">
+        <div class="filter-section-title">Features</div>
+        <div class="filter-options">
+          <label class="filter-chip" data-filter="variable" data-value="true">
+            <input type="checkbox"> Variable
+          </label>
+          <label class="filter-chip" data-filter="ligatures" data-value="true">
+            <input type="checkbox"> Ligatures
+          </label>
+          <label class="filter-chip" data-filter="icons" data-value="true">
+            <input type="checkbox"> Icons
+          </label>
+        </div>
+      </div>
+    </div>
     <div class="font-list" id="editor-font-list">
       <div class="loading">Loading fonts...</div>
     </div>
     <div class="controls">
       <div class="control-row">
+        <select class="weight-select" id="editor-weight"></select>
         <input type="number" class="size-input" id="editor-size" min="8" max="72" step="1">
         <span class="unit-label">px</span>
-      </div>
-      <div class="control-row">
-        <select class="weight-select" id="editor-weight"></select>
       </div>
     </div>
   </div>
 
   <div id="terminal-tab" class="tab-content">
-    <input type="text" class="search-box" id="terminal-search" placeholder="Search fonts...">
+    <div class="search-row">
+      <input type="text" class="search-box" id="terminal-search" placeholder="Search...">
+      <button class="filter-toggle" id="terminal-filter-toggle" title="Toggle filters">Filter</button>
+    </div>
+    <div class="filter-panel" id="terminal-filter-panel">
+      <div class="filter-section">
+        <div class="filter-section-title">Category</div>
+        <div class="filter-options">
+          <label class="filter-chip selected" data-filter="category" data-value="monospace">
+            <input type="checkbox" checked> Monospace
+          </label>
+          <label class="filter-chip selected" data-filter="category" data-value="sans-serif">
+            <input type="checkbox" checked> Sans Serif
+          </label>
+          <label class="filter-chip selected" data-filter="category" data-value="serif">
+            <input type="checkbox" checked> Serif
+          </label>
+        </div>
+      </div>
+      <div class="filter-section">
+        <div class="filter-section-title">Features</div>
+        <div class="filter-options">
+          <label class="filter-chip" data-filter="variable" data-value="true">
+            <input type="checkbox"> Variable
+          </label>
+          <label class="filter-chip" data-filter="ligatures" data-value="true">
+            <input type="checkbox"> Ligatures
+          </label>
+          <label class="filter-chip" data-filter="icons" data-value="true">
+            <input type="checkbox"> Icons
+          </label>
+        </div>
+      </div>
+    </div>
     <div class="font-list" id="terminal-font-list">
       <div class="loading">Loading fonts...</div>
     </div>
     <div class="controls">
       <div class="control-row">
+        <select class="weight-select" id="terminal-weight"></select>
         <input type="number" class="size-input" id="terminal-size" min="8" max="72" step="1">
         <span class="unit-label">px</span>
-      </div>
-      <div class="control-row">
-        <select class="weight-select" id="terminal-weight"></select>
       </div>
     </div>
   </div>
@@ -423,15 +583,25 @@ export function getWebviewContent(
     let currentEditorFont = null;
     let currentTerminalFont = null;
 
+    // Filter state per tab
+    const filters = {
+      editor: {
+        categories: new Set(['monospace', 'sans-serif', 'serif']),
+        variable: false,
+        ligatures: false,
+        icons: false
+      },
+      terminal: {
+        categories: new Set(['monospace', 'sans-serif', 'serif']),
+        variable: false,
+        ligatures: false,
+        icons: false
+      }
+    };
+
     // Canonical font specimen for programming fonts
     // Tests: character disambiguation, ligatures, brackets, code patterns
-    const PREVIEW_TEXT = \`0O 1lI |!¡ {}[]() <>
--> => != === <= >= ++ --
-const fn = (x) => x * 2;
-if (arr[0] !== null) { }
-"string" 'char' \\\`template\\\`
-THE QUICK BROWN FOX
-the lazy dog jumps\`;
+    const PREVIEW_TEXT = '0O 1lI |!¡ {}[]() <> -> => != === <= >= ++ -- const fn = (x) => x * 2; if (arr[0] !== null) { } "string" THE QUICK BROWN FOX the lazy dog jumps';
 
     // Tab switching
     document.querySelectorAll('.tab').forEach(tab => {
@@ -480,6 +650,53 @@ the lazy dog jumps\`;
       renderFontList('terminal', e.target.value);
     });
 
+    // Filter toggle handlers
+    ['editor', 'terminal'].forEach(target => {
+      const toggle = document.getElementById(target + '-filter-toggle');
+      const panel = document.getElementById(target + '-filter-panel');
+
+      toggle.addEventListener('click', () => {
+        const isOpen = panel.classList.toggle('open');
+        toggle.classList.toggle('active', isOpen);
+      });
+
+      // Filter chip handlers
+      panel.querySelectorAll('.filter-chip').forEach(chip => {
+        chip.addEventListener('click', (e) => {
+          e.preventDefault();
+          const filterType = chip.dataset.filter;
+          const value = chip.dataset.value;
+
+          if (filterType === 'category') {
+            // Category filters are multi-select
+            if (chip.classList.contains('selected')) {
+              chip.classList.remove('selected');
+              filters[target].categories.delete(value);
+            } else {
+              chip.classList.add('selected');
+              filters[target].categories.add(value);
+            }
+          } else {
+            // Feature filters are toggles
+            const newState = !chip.classList.contains('selected');
+            chip.classList.toggle('selected', newState);
+            filters[target][filterType] = newState;
+          }
+
+          updateFilterToggleState(target);
+          renderFontList(target, document.getElementById(target + '-search').value);
+        });
+      });
+    });
+
+    function updateFilterToggleState(target) {
+      const toggle = document.getElementById(target + '-filter-toggle');
+      const f = filters[target];
+      // Has active filters if: not all categories selected, or any feature filter on
+      const hasActiveFilters = f.categories.size < 3 || f.variable || f.ligatures || f.icons;
+      toggle.classList.toggle('has-filters', hasActiveFilters);
+    }
+
     function findFontByName(fontName) {
       const lowerName = fontName.toLowerCase();
       return fonts.find(f => f.name.toLowerCase() === lowerName);
@@ -516,9 +733,28 @@ the lazy dog jumps\`;
         ? extractFontFamily(settings.editorFont)
         : extractFontFamily(settings.terminalFont);
 
-      const filteredFonts = fonts.filter(f =>
-        f.name.toLowerCase().includes(filter.toLowerCase())
-      );
+      const f = filters[target];
+      const filteredFonts = fonts.filter(font => {
+        // Text search filter
+        if (filter && !font.name.toLowerCase().includes(filter.toLowerCase())) {
+          return false;
+        }
+        // Category filter
+        if (!f.categories.has(font.category)) {
+          return false;
+        }
+        // Feature filters (only filter IN, not OUT when enabled)
+        if (f.variable && !font.isVariable) {
+          return false;
+        }
+        if (f.ligatures && !font.hasLigatures) {
+          return false;
+        }
+        if (f.icons && !font.hasIcons) {
+          return false;
+        }
+        return true;
+      });
 
       // Clear existing content
       list.textContent = '';
@@ -531,12 +767,17 @@ the lazy dog jumps\`;
         return;
       }
 
-      // Group fonts by category
-      const categories = {
-        'monospace': { label: 'Monospace', fonts: [] },
-        'sans-serif': { label: 'Sans Serif', fonts: [] },
-        'serif': { label: 'Serif', fonts: [] }
-      };
+      // Group fonts by category (only show categories that are enabled)
+      const categories = {};
+      if (f.categories.has('monospace')) {
+        categories['monospace'] = { label: 'Monospace', fonts: [] };
+      }
+      if (f.categories.has('sans-serif')) {
+        categories['sans-serif'] = { label: 'Sans Serif', fonts: [] };
+      }
+      if (f.categories.has('serif')) {
+        categories['serif'] = { label: 'Serif', fonts: [] };
+      }
 
       filteredFonts.forEach(font => {
         if (categories[font.category]) {
@@ -575,14 +816,6 @@ the lazy dog jumps\`;
           nameSpan.style.fontFamily = "'" + font.name + "', monospace";
           nameSpan.textContent = font.name;
           item.appendChild(nameSpan);
-
-          if (font.isVariable) {
-            const vfBadge = document.createElement('span');
-            vfBadge.className = 'badge badge-variable';
-            vfBadge.textContent = 'VF';
-            vfBadge.title = 'Variable font - supports all weights';
-            item.appendChild(vfBadge);
-          }
 
           // Click handler - apply font
           item.addEventListener('click', () => {

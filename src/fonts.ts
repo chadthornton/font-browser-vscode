@@ -16,6 +16,8 @@ export interface FontInfo {
   category: FontCategory;
   isInstalled: boolean;
   isVariable: boolean;
+  hasLigatures: boolean;
+  hasIcons: boolean;
   weights: FontWeight[];
 }
 
@@ -73,6 +75,31 @@ const FONTS_BY_CATEGORY: Record<FontCategory, string[]> = {
     'Crimson Text', 'Libre Baskerville', 'PT Serif', 'American Typewriter', 'Courier',
   ],
 };
+
+// Fonts known to have programming ligatures (e.g., ->, =>, !=, ===)
+// Includes base names - Nerd Font variants are matched via prefix
+const LIGATURE_FONTS = new Set([
+  'Fira Code',
+  'JetBrains Mono',
+  'Cascadia Code',
+  'Victor Mono',
+  'Monaspace Neon',
+  'Monaspace Argon',
+  'Monaspace Xenon',
+  'Monaspace Radon',
+  'Monaspace Krypton',
+  'Iosevka',
+  'Hasklig',
+  'Monoid',
+  'PragmataPro',
+  'Dank Mono',
+  'Operator Mono',
+  'MonoLisa',
+  'Recursive Mono',
+  'Liga SFMono Nerd Font',
+  'Lilex',
+  'Maple Mono',
+]);
 
 interface FontStyleInfo {
   family: string;
@@ -321,6 +348,8 @@ export async function getSystemFonts(): Promise<FontInfo[]> {
         category: category as FontCategory,
         isInstalled: true,
         isVariable: isFontVariable(name),
+        hasLigatures: hasLigatureSupport(name),
+        hasIcons: hasIconSupport(name),
         weights: getWeightsForFont(name),
       });
     }
@@ -347,11 +376,30 @@ export async function getSystemFonts(): Promise<FontInfo[]> {
       category,
       isInstalled: true,
       isVariable: isFontVariable(family),
+      hasLigatures: hasLigatureSupport(family),
+      hasIcons: hasIconSupport(family),
       weights: getWeightsForFont(family),
     });
   }
 
   return result;
+}
+
+function hasLigatureSupport(fontName: string): boolean {
+  const lowerName = fontName.toLowerCase();
+  // Check if font name starts with any known ligature font name
+  for (const ligFont of LIGATURE_FONTS) {
+    if (lowerName.startsWith(ligFont.toLowerCase())) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasIconSupport(fontName: string): boolean {
+  const lowerName = fontName.toLowerCase();
+  // Nerd Fonts contain "nerd" in the name
+  return lowerName.includes('nerd');
 }
 
 function looksMonospace(fontName: string): boolean {
