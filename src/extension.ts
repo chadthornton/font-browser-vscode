@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { FontBrowserViewProvider } from './FontBrowserViewProvider';
 
 export function activate(context: vscode.ExtensionContext) {
-  const provider = new FontBrowserViewProvider(context.extensionUri);
+  const provider = new FontBrowserViewProvider(context.extensionUri, context);
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(

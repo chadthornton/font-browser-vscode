@@ -123,6 +123,7 @@ export function getWebviewContent(
       font-size: 12px;
       opacity: 0.7;
       flex-shrink: 0;
+      min-width: 70px;
     }
 
     .filter-toggle:hover {
@@ -262,9 +263,37 @@ export function getWebviewContent(
       font-size: 13px;
     }
 
+    .favorite-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 4px;
+      opacity: 0.3;
+      transition: opacity 0.15s;
+      line-height: 1;
+    }
+
+    .favorite-btn:hover {
+      opacity: 0.7;
+    }
+
+    .favorite-btn.favorited {
+      opacity: 1;
+      color: var(--vscode-charts-yellow, #f5c842);
+    }
+
+    .font-item:hover .favorite-btn {
+      opacity: 0.5;
+    }
+
+    .font-item:hover .favorite-btn.favorited,
+    .font-item:hover .favorite-btn:hover {
+      opacity: 1;
+    }
+
     .controls {
-      margin: 8px 0;
-      padding: 0;
+      margin-top: 8px;
       flex-shrink: 0;
     }
 
@@ -272,11 +301,6 @@ export function getWebviewContent(
       display: flex;
       gap: 6px;
       align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .control-row:last-child {
-      margin-bottom: 0;
     }
 
     .size-input {
@@ -371,8 +395,10 @@ export function getWebviewContent(
       font-size: 11px;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 4px;
       opacity: 0.8;
+      min-width: 70px;
     }
 
     .restore-btn:hover {
@@ -579,6 +605,7 @@ export function getWebviewContent(
     let fonts = [];
     let settings = {};
     let previousSettings = null;
+    let favorites = [];
     let selectedPreviewFont = null;
     let currentEditorFont = null;
     let currentTerminalFont = null;
@@ -769,6 +796,13 @@ export function getWebviewContent(
 
       // Group fonts by category (only show categories that are enabled)
       const categories = {};
+
+      // Favorites always comes first if there are any
+      const favoritedFonts = filteredFonts.filter(font => favorites.includes(font.name));
+      if (favoritedFonts.length > 0) {
+        categories['favorites'] = { label: 'Favorites', fonts: favoritedFonts };
+      }
+
       if (f.categories.has('monospace')) {
         categories['monospace'] = { label: 'Monospace', fonts: [] };
       }
@@ -804,12 +838,24 @@ export function getWebviewContent(
         // Font items
         cat.fonts.forEach(font => {
           const isSelected = font.name.toLowerCase() === currentFontFamily.toLowerCase();
+          const isFavorited = favorites.includes(font.name);
 
           const item = document.createElement('div');
           item.className = 'font-item';
           if (isSelected) item.classList.add('selected');
           item.dataset.font = font.name;
           item.dataset.target = target;
+
+          // Favorite star button
+          const starBtn = document.createElement('button');
+          starBtn.className = 'favorite-btn' + (isFavorited ? ' favorited' : '');
+          starBtn.textContent = isFavorited ? '★' : '☆';
+          starBtn.title = isFavorited ? 'Remove from favorites' : 'Add to favorites';
+          starBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            vscode.postMessage({ command: 'toggleFavorite', fontName: font.name });
+          });
+          item.appendChild(starBtn);
 
           const nameSpan = document.createElement('span');
           nameSpan.className = 'font-name';
@@ -982,6 +1028,7 @@ export function getWebviewContent(
           fonts = message.fonts;
           settings = message.settings;
           previousSettings = message.previousSettings;
+          favorites = message.favorites || [];
           updateUI();
           updateRestoreButton();
           break;
@@ -993,6 +1040,11 @@ export function getWebviewContent(
         case 'previousSettingsUpdated':
           previousSettings = message.previousSettings;
           updateRestoreButton();
+          break;
+        case 'favoritesUpdated':
+          favorites = message.favorites || [];
+          renderFontList('editor', document.getElementById('editor-search').value);
+          renderFontList('terminal', document.getElementById('terminal-search').value);
           break;
       }
     });

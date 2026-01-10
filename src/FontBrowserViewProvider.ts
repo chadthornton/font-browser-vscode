@@ -4,11 +4,45 @@ import { getSystemFonts } from './fonts';
 
 export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'fontBrowser.mainView';
+  private static readonly FAVORITES_KEY = 'fontBrowser.favorites';
 
   private _view?: vscode.WebviewView;
   private _previousSettings?: ReturnType<typeof this._getCurrentSettings>;
 
-  constructor(private readonly _extensionUri: vscode.Uri) {}
+  constructor(
+    private readonly _extensionUri: vscode.Uri,
+    private readonly _context: vscode.ExtensionContext
+  ) {}
+
+  private _getFavorites(): string[] {
+    return this._context.globalState.get<string[]>(FontBrowserViewProvider.FAVORITES_KEY, []);
+  }
+
+  private async _setFavorites(favorites: string[]): Promise<void> {
+    await this._context.globalState.update(FontBrowserViewProvider.FAVORITES_KEY, favorites);
+  }
+
+  private async _toggleFavorite(fontName: string): Promise<void> {
+    const favorites = this._getFavorites();
+    const index = favorites.indexOf(fontName);
+
+    if (index === -1) {
+      favorites.push(fontName);
+    } else {
+      favorites.splice(index, 1);
+    }
+
+    await this._setFavorites(favorites);
+    this._sendFavoritesUpdate();
+  }
+
+  private _sendFavoritesUpdate(): void {
+    if (!this._view) return;
+    this._view.webview.postMessage({
+      command: 'favoritesUpdated',
+      favorites: this._getFavorites(),
+    });
+  }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -63,6 +97,9 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
         case 'restoreSettings':
           await this._restoreSettings();
           break;
+        case 'toggleFavorite':
+          await this._toggleFavorite(message.fontName);
+          break;
       }
     });
 
@@ -103,6 +140,7 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
       fonts,
       settings,
       previousSettings: this._previousSettings,
+      favorites: this._getFavorites(),
     });
   }
 
