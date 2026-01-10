@@ -4,6 +4,11 @@
   "description": "Browse and preview fonts for VS Code editor and terminal",
   "version": "0.0.7",
   "publisher": "chadthornton",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chadthornton/font-browser-vscode"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
