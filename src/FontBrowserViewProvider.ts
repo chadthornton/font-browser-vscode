@@ -33,14 +33,15 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
     }
 
     await this._setFavorites(favorites);
-    this._sendFavoritesUpdate();
+    this._sendFavoritesUpdate(fontName);
   }
 
-  private _sendFavoritesUpdate(): void {
+  private _sendFavoritesUpdate(toggledFont?: string): void {
     if (!this._view) return;
     this._view.webview.postMessage({
       command: 'favoritesUpdated',
       favorites: this._getFavorites(),
+      toggledFont,
     });
   }
 

@@ -220,6 +220,11 @@ export function getWebviewContent(
       border: 1px solid var(--vscode-widget-border);
       border-radius: 4px;
       background: var(--vscode-input-background);
+      scrollbar-width: none;
+    }
+
+    .font-list::-webkit-scrollbar {
+      display: none;
     }
 
     .category-header {
@@ -269,27 +274,27 @@ export function getWebviewContent(
       cursor: pointer;
       font-size: 14px;
       padding: 2px 4px;
-      opacity: 0.3;
+      opacity: 0.15;
       transition: opacity 0.15s;
       line-height: 1;
+      order: 1;
     }
 
     .favorite-btn:hover {
-      opacity: 0.7;
+      opacity: 0.6;
     }
 
     .favorite-btn.favorited {
-      opacity: 1;
-      color: var(--vscode-charts-yellow, #f5c842);
+      opacity: 0.35;
     }
 
     .font-item:hover .favorite-btn {
-      opacity: 0.5;
+      opacity: 0.35;
     }
 
     .font-item:hover .favorite-btn.favorited,
     .font-item:hover .favorite-btn:hover {
-      opacity: 1;
+      opacity: 0.5;
     }
 
     .controls {
@@ -388,7 +393,7 @@ export function getWebviewContent(
       position: relative;
       background: transparent;
       border: 1px solid var(--vscode-button-secondaryBackground);
-      color: var(--vscode-foreground);
+      color: var(--vscode-descriptionForeground);
       padding: 4px 8px;
       border-radius: 3px;
       cursor: pointer;
@@ -397,17 +402,17 @@ export function getWebviewContent(
       align-items: center;
       justify-content: center;
       gap: 4px;
-      opacity: 0.8;
       min-width: 70px;
     }
 
     .restore-btn:hover {
-      opacity: 1;
+      color: var(--vscode-foreground);
       background: var(--vscode-button-secondaryHoverBackground);
     }
 
     .restore-btn:disabled {
-      opacity: 0.4;
+      color: var(--vscode-disabledForeground, rgba(128, 128, 128, 0.5));
+      border-color: transparent;
       cursor: not-allowed;
     }
 
@@ -420,15 +425,16 @@ export function getWebviewContent(
       top: 100%;
       right: 0;
       margin-top: 8px;
-      background: var(--vscode-editorWidget-background);
+      background-color: var(--vscode-menu-background, var(--vscode-editorWidget-background, var(--vscode-sideBar-background)));
       border: 1px solid var(--vscode-widget-border);
       border-radius: 4px;
-      padding: 10px 12px;
-      min-width: 220px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-      z-index: 100;
+      padding: 12px 14px;
+      min-width: 240px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
       display: none;
       text-align: left;
+      isolation: isolate;
     }
 
     .restore-btn:hover .restore-tooltip {
@@ -436,14 +442,13 @@ export function getWebviewContent(
     }
 
     .tooltip-title {
-      font-size: 11px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: var(--vscode-foreground);
+      font-size: 14px;
+      margin-bottom: 12px;
+      opacity: 0.7;
     }
 
     .tooltip-section {
-      margin-bottom: 8px;
+      margin-bottom: 16px;
     }
 
     .tooltip-section:last-child {
@@ -451,17 +456,15 @@ export function getWebviewContent(
     }
 
     .tooltip-section-title {
-      font-size: 10px;
-      font-weight: 600;
+      font-size: 11px;
       text-transform: uppercase;
-      color: var(--vscode-descriptionForeground);
-      margin-bottom: 4px;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
     }
 
     .tooltip-item {
-      font-size: 11px;
-      color: var(--vscode-foreground);
-      margin-bottom: 2px;
+      font-size: 14px;
+      margin-bottom: 3px;
     }
 
     .tooltip-item:last-child {
@@ -469,7 +472,7 @@ export function getWebviewContent(
     }
 
     .tooltip-value {
-      color: var(--vscode-textLink-foreground);
+      color: var(--vscode-foreground);
     }
   </style>
 </head>
@@ -486,15 +489,13 @@ export function getWebviewContent(
         <div class="tooltip-title">Restore to previous selections</div>
         <div class="tooltip-section">
           <div class="tooltip-section-title">Editor</div>
-          <div class="tooltip-item">Font: <span class="tooltip-value" id="prev-editor-font">-</span></div>
-          <div class="tooltip-item">Size: <span class="tooltip-value" id="prev-editor-size">-</span></div>
-          <div class="tooltip-item">Weight: <span class="tooltip-value" id="prev-editor-weight">-</span></div>
+          <div class="tooltip-item"><span class="tooltip-value" id="prev-editor-font">-</span></div>
+          <div class="tooltip-item"><span class="tooltip-value" id="prev-editor-size">-</span> · <span class="tooltip-value" id="prev-editor-weight">-</span></div>
         </div>
         <div class="tooltip-section">
           <div class="tooltip-section-title">Terminal</div>
-          <div class="tooltip-item">Font: <span class="tooltip-value" id="prev-terminal-font">-</span></div>
-          <div class="tooltip-item">Size: <span class="tooltip-value" id="prev-terminal-size">-</span></div>
-          <div class="tooltip-item">Weight: <span class="tooltip-value" id="prev-terminal-weight">-</span></div>
+          <div class="tooltip-item"><span class="tooltip-value" id="prev-terminal-font">-</span></div>
+          <div class="tooltip-item"><span class="tooltip-value" id="prev-terminal-size">-</span> · <span class="tooltip-value" id="prev-terminal-weight">-</span></div>
         </div>
       </div>
     </button>
@@ -754,11 +755,20 @@ export function getWebviewContent(
       select.value = hasCurrentWeight ? normalizedCurrent : weights[0].value;
     }
 
-    function renderFontList(target, filter = '') {
+    function renderFontList(target, filter = '', anchorFont = null) {
       const list = document.getElementById(target + '-font-list');
       const currentFontFamily = target === 'editor'
         ? extractFontFamily(settings.editorFont)
         : extractFontFamily(settings.terminalFont);
+
+      // Scroll anchoring: save position of anchor font before re-render
+      let anchorOffsetBefore = null;
+      if (anchorFont) {
+        const anchorEl = list.querySelector('[data-font="' + anchorFont + '"]:not([data-category="favorites"])');
+        if (anchorEl) {
+          anchorOffsetBefore = anchorEl.getBoundingClientRect().top - list.getBoundingClientRect().top;
+        }
+      }
 
       const f = filters[target];
       const filteredFonts = fonts.filter(font => {
@@ -845,6 +855,7 @@ export function getWebviewContent(
           if (isSelected) item.classList.add('selected');
           item.dataset.font = font.name;
           item.dataset.target = target;
+          item.dataset.category = key;
 
           // Favorite star button
           const starBtn = document.createElement('button');
@@ -889,6 +900,16 @@ export function getWebviewContent(
           list.appendChild(item);
         });
       });
+
+      // Scroll anchoring: restore position after re-render
+      if (anchorFont && anchorOffsetBefore !== null) {
+        const anchorEl = list.querySelector('[data-font="' + anchorFont + '"]:not([data-category="favorites"])');
+        if (anchorEl) {
+          const anchorOffsetAfter = anchorEl.getBoundingClientRect().top - list.getBoundingClientRect().top;
+          const scrollDelta = anchorOffsetAfter - anchorOffsetBefore;
+          list.scrollTop += scrollDelta;
+        }
+      }
     }
 
     function extractFontFamily(fontString) {
@@ -1043,8 +1064,8 @@ export function getWebviewContent(
           break;
         case 'favoritesUpdated':
           favorites = message.favorites || [];
-          renderFontList('editor', document.getElementById('editor-search').value);
-          renderFontList('terminal', document.getElementById('terminal-search').value);
+          renderFontList('editor', document.getElementById('editor-search').value, message.toggledFont);
+          renderFontList('terminal', document.getElementById('terminal-search').value, message.toggledFont);
           break;
       }
     });
