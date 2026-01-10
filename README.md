@@ -2,9 +2,11 @@
 
 Browse and preview fonts for your VS Code editor and terminal from a convenient sidebar.
 
+![Font Browser Screenshot](images/screenshot.png)
+
 ## Features
 
-- **Live Preview** - See how fonts look before applying them
+- **Try Fonts Live** - Click any font to apply it instantly and see how it looks with your actual code
 - **Editor & Terminal Tabs** - Configure fonts separately for code editing and terminal
 - **Smart Filtering** - Filter by category (Monospace, Sans Serif, Serif) or features (Variable, Ligatures, Icons)
 - **Favorites** - Star fonts you love for quick access
