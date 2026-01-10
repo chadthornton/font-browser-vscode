@@ -112,9 +112,32 @@ interface FontStyleInfo {
 
 async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> {
   const fontStyles = new Map<string, FontStyleInfo[]>();
-  const variableFonts = new Set<string>();
 
-  if (process.platform === 'darwin' || process.platform === 'linux') {
+  if (process.platform === 'win32') {
+    // Windows: Use PowerShell to get font families
+    // Note: This doesn't provide weight/style metadata, so all fonts get default "Regular" weight
+    try {
+      const { stdout } = await execAsync(
+        'powershell -NoProfile -Command "Add-Type -AssemblyName System.Drawing; [System.Drawing.FontFamily]::Families | ForEach-Object { $_.Name }"',
+        { maxBuffer: 10 * 1024 * 1024 }
+      );
+
+      for (const line of stdout.split('\n')) {
+        const family = line.trim();
+        if (!family) continue;
+
+        // Add with default Regular weight (no metadata available on Windows)
+        fontStyles.set(family, [{
+          family,
+          weight: 80, // Regular
+          hasItalic: false,
+          isVariable: false
+        }]);
+      }
+    } catch {
+      // PowerShell not available or failed
+    }
+  } else if (process.platform === 'darwin' || process.platform === 'linux') {
     try {
       const { stdout } = await execAsync('fc-list : family style weight 2>/dev/null', {
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer for systems with many fonts
@@ -148,7 +171,6 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
             // Variable font with weight range
             const weightMin = parseInt(weightRangeMatch[1], 10);
             const weightMax = parseInt(weightRangeMatch[2], 10);
-            variableFonts.add(family);
 
             // Add entry marking this as variable
             const existing = styles.find(s => s.isVariable);
