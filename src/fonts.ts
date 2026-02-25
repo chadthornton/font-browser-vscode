@@ -139,7 +139,11 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
     }
   } else if (process.platform === 'darwin' || process.platform === 'linux') {
     try {
-      const { stdout } = await execAsync('fc-list : family style weight 2>/dev/null', {
+      // Use full path on macOS since VS Code may not have /opt/homebrew/bin in PATH
+      const fcListCmd = process.platform === 'darwin'
+        ? '/opt/homebrew/bin/fc-list : family style weight 2>/dev/null || /usr/local/bin/fc-list : family style weight 2>/dev/null || fc-list : family style weight 2>/dev/null'
+        : 'fc-list : family style weight 2>/dev/null';
+      const { stdout } = await execAsync(fcListCmd, {
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer for systems with many fonts
       });
 
@@ -207,7 +211,7 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
   return fontStyles;
 }
 
-function extractFamilyName(fontName: string): string {
+export function extractFamilyName(fontName: string): string {
   let family = fontName.trim();
   const sortedSuffixes = [...WEIGHT_STYLE_SUFFIXES].sort((a, b) => b.length - a.length);
 
@@ -234,7 +238,7 @@ function extractFamilyName(fontName: string): string {
   return family || fontName;
 }
 
-function convertFcWeightToCSS(fcWeight: number): FontWeight | null {
+export function convertFcWeightToCSS(fcWeight: number): FontWeight | null {
   // Find the closest matching weight
   const weights = Object.keys(FC_TO_CSS_WEIGHT).map(Number).sort((a, b) => a - b);
 
@@ -424,7 +428,7 @@ function hasIconSupport(fontName: string): boolean {
   return lowerName.includes('nerd');
 }
 
-function looksMonospace(fontName: string): boolean {
+export function looksMonospace(fontName: string): boolean {
   const name = fontName.toLowerCase();
   const monoKeywords = [
     'mono', 'code', 'consol', 'courier', 'terminal', 'fixed',
@@ -433,7 +437,7 @@ function looksMonospace(fontName: string): boolean {
   return monoKeywords.some((keyword) => name.includes(keyword));
 }
 
-function looksSerif(fontName: string): boolean {
+export function looksSerif(fontName: string): boolean {
   const name = fontName.toLowerCase();
   const serifKeywords = [
     'serif', 'times', 'georgia', 'palatino', 'garamond', 'baskerville',
