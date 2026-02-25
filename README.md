@@ -2,7 +2,7 @@
 
 Browse and preview fonts for your VS Code editor and terminal from a convenient sidebar.
 
-![Font Browser Screenshot](images/screenshot.png)
+![Font Browser Screenshot](https://raw.githubusercontent.com/chadthornton/font-browser-vscode/main/images/screenshot.png)
 
 ## Features
 
