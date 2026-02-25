@@ -115,7 +115,7 @@ export function getWebviewContent(
 
     .filter-toggle {
       background: transparent;
-      border: 1px solid var(--vscode-input-border);
+      border: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
       border-radius: 4px;
       color: var(--vscode-foreground);
       padding: 4px 10px;
@@ -242,7 +242,7 @@ export function getWebviewContent(
     }
 
     .font-item {
-      padding: 6px 10px;
+      padding: 4px 10px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -265,7 +265,7 @@ export function getWebviewContent(
 
     .font-name {
       flex: 1;
-      font-size: 13px;
+      font-size: 15px;
     }
 
     .favorite-btn {
@@ -306,6 +306,15 @@ export function getWebviewContent(
       display: flex;
       gap: 6px;
       align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .control-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .bold-weight-select {
+      min-width: 80px;
     }
 
     .size-input {
@@ -392,7 +401,7 @@ export function getWebviewContent(
     .restore-btn {
       position: relative;
       background: transparent;
-      border: 1px solid var(--vscode-button-secondaryBackground);
+      border: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
       color: var(--vscode-descriptionForeground);
       padding: 4px 8px;
       border-radius: 3px;
@@ -491,11 +500,14 @@ export function getWebviewContent(
           <div class="tooltip-section-title">Editor</div>
           <div class="tooltip-item"><span class="tooltip-value" id="prev-editor-font">-</span></div>
           <div class="tooltip-item"><span class="tooltip-value" id="prev-editor-size">-</span> · <span class="tooltip-value" id="prev-editor-weight">-</span></div>
+          <div class="tooltip-item">lh: <span class="tooltip-value" id="prev-editor-line-height">-</span> · ls: <span class="tooltip-value" id="prev-editor-letter-spacing">-</span></div>
         </div>
         <div class="tooltip-section">
           <div class="tooltip-section-title">Terminal</div>
           <div class="tooltip-item"><span class="tooltip-value" id="prev-terminal-font">-</span></div>
           <div class="tooltip-item"><span class="tooltip-value" id="prev-terminal-size">-</span> · <span class="tooltip-value" id="prev-terminal-weight">-</span></div>
+          <div class="tooltip-item">lh: <span class="tooltip-value" id="prev-terminal-line-height">-</span> · ls: <span class="tooltip-value" id="prev-terminal-letter-spacing">-</span></div>
+          <div class="tooltip-item">bold: <span class="tooltip-value" id="prev-terminal-bold-weight">-</span></div>
         </div>
       </div>
     </button>
@@ -545,6 +557,12 @@ export function getWebviewContent(
         <input type="number" class="size-input" id="editor-size" min="8" max="72" step="1">
         <span class="unit-label">px</span>
       </div>
+      <div class="control-row">
+        <input type="number" class="size-input" id="editor-line-height" min="0" max="100" step="1" title="Line height (0 = auto)">
+        <span class="unit-label">lh</span>
+        <input type="number" class="size-input" id="editor-letter-spacing" min="-5" max="20" step="0.1" title="Letter spacing">
+        <span class="unit-label">ls</span>
+      </div>
     </div>
   </div>
 
@@ -592,6 +610,13 @@ export function getWebviewContent(
         <input type="number" class="size-input" id="terminal-size" min="8" max="72" step="1">
         <span class="unit-label">px</span>
       </div>
+      <div class="control-row">
+        <input type="number" class="size-input" id="terminal-line-height" min="1" max="3" step="0.1" title="Line height (1 = default)">
+        <span class="unit-label">lh</span>
+        <input type="number" class="size-input" id="terminal-letter-spacing" min="-5" max="20" step="1" title="Letter spacing">
+        <span class="unit-label">ls</span>
+        <select class="weight-select bold-weight-select" id="terminal-bold-weight" title="Bold text weight"></select>
+      </div>
     </div>
   </div>
 
@@ -604,13 +629,20 @@ export function getWebviewContent(
     const vscode = acquireVsCodeApi();
 
     let fonts = [];
+    let fontsLoaded = false;
     let settings = {};
     let previousSettings = null;
-    let favorites = [];
+    let favorites = {}; // { [fontName]: { editor?: {...}, terminal?: {...} } }
     let platform = '';
     let selectedPreviewFont = null;
     let currentEditorFont = null;
     let currentTerminalFont = null;
+
+    // Track whether settings have changed since last font selection (per tab)
+    const dirty = {
+      editor: false,
+      terminal: false
+    };
 
     // Filter state per tab
     const filters = {
@@ -648,6 +680,7 @@ export function getWebviewContent(
     document.getElementById('editor-size').addEventListener('change', (e) => {
       const size = parseInt(e.target.value, 10);
       if (size >= 8 && size <= 72) {
+        dirty.editor = true;
         vscode.postMessage({ command: 'setEditorFontSize', size });
       }
     });
@@ -655,19 +688,62 @@ export function getWebviewContent(
     document.getElementById('terminal-size').addEventListener('change', (e) => {
       const size = parseInt(e.target.value, 10);
       if (size >= 8 && size <= 72) {
+        dirty.terminal = true;
         vscode.postMessage({ command: 'setTerminalFontSize', size });
       }
     });
 
     // Font weight selects
     document.getElementById('editor-weight').addEventListener('change', (e) => {
+      dirty.editor = true;
       vscode.postMessage({ command: 'setEditorFontWeight', weight: e.target.value });
       updatePreview();
     });
 
     document.getElementById('terminal-weight').addEventListener('change', (e) => {
+      dirty.terminal = true;
       vscode.postMessage({ command: 'setTerminalFontWeight', weight: e.target.value });
       updatePreview();
+    });
+
+    // Line height inputs
+    document.getElementById('editor-line-height').addEventListener('change', (e) => {
+      const lineHeight = parseInt(e.target.value, 10);
+      if (lineHeight >= 0 && lineHeight <= 100) {
+        dirty.editor = true;
+        vscode.postMessage({ command: 'setEditorLineHeight', lineHeight });
+      }
+    });
+
+    document.getElementById('terminal-line-height').addEventListener('change', (e) => {
+      const lineHeight = parseFloat(e.target.value);
+      if (lineHeight >= 1 && lineHeight <= 3) {
+        dirty.terminal = true;
+        vscode.postMessage({ command: 'setTerminalLineHeight', lineHeight });
+      }
+    });
+
+    // Letter spacing inputs
+    document.getElementById('editor-letter-spacing').addEventListener('change', (e) => {
+      const letterSpacing = parseFloat(e.target.value);
+      if (letterSpacing >= -5 && letterSpacing <= 20) {
+        dirty.editor = true;
+        vscode.postMessage({ command: 'setEditorLetterSpacing', letterSpacing });
+      }
+    });
+
+    document.getElementById('terminal-letter-spacing').addEventListener('change', (e) => {
+      const letterSpacing = parseInt(e.target.value, 10);
+      if (letterSpacing >= -5 && letterSpacing <= 20) {
+        dirty.terminal = true;
+        vscode.postMessage({ command: 'setTerminalLetterSpacing', letterSpacing });
+      }
+    });
+
+    // Terminal bold weight select
+    document.getElementById('terminal-bold-weight').addEventListener('change', (e) => {
+      dirty.terminal = true;
+      vscode.postMessage({ command: 'setTerminalBoldWeight', weight: e.target.value });
     });
 
     // Search functionality
@@ -756,6 +832,31 @@ export function getWebviewContent(
       select.value = hasCurrentWeight ? normalizedCurrent : weights[0].value;
     }
 
+    function populateBoldWeightDropdown(currentWeight) {
+      const select = document.getElementById('terminal-bold-weight');
+      select.textContent = '';
+
+      const weights = [
+        { value: 'normal', label: 'Normal' },
+        { value: '500', label: 'Medium' },
+        { value: '600', label: 'SemiBold' },
+        { value: 'bold', label: 'Bold' },
+        { value: '800', label: 'ExtraBold' },
+        { value: '900', label: 'Black' },
+      ];
+
+      weights.forEach(w => {
+        const option = document.createElement('option');
+        option.value = w.value;
+        option.textContent = w.label;
+        select.appendChild(option);
+      });
+
+      // Match current value or default to bold
+      const normalized = currentWeight === '700' ? 'bold' : currentWeight;
+      select.value = weights.some(w => w.value === normalized) ? normalized : 'bold';
+    }
+
     function renderFontList(target, filter = '', anchorFont = null) {
       const list = document.getElementById(target + '-font-list');
       const currentFontFamily = target === 'editor'
@@ -800,7 +901,7 @@ export function getWebviewContent(
       if (filteredFonts.length === 0) {
         const loadingDiv = document.createElement('div');
         loadingDiv.className = 'loading';
-        loadingDiv.textContent = 'No fonts found';
+        loadingDiv.textContent = fontsLoaded ? 'No fonts found' : 'Loading fonts...';
         list.appendChild(loadingDiv);
         return;
       }
@@ -809,7 +910,7 @@ export function getWebviewContent(
       const categories = {};
 
       // Favorites always comes first if there are any
-      const favoritedFonts = filteredFonts.filter(font => favorites.includes(font.name));
+      const favoritedFonts = filteredFonts.filter(font => font.name in favorites);
       if (favoritedFonts.length > 0) {
         categories['favorites'] = { label: 'Favorites', fonts: favoritedFonts };
       }
@@ -849,7 +950,7 @@ export function getWebviewContent(
         // Font items
         cat.fonts.forEach(font => {
           const isSelected = font.name.toLowerCase() === currentFontFamily.toLowerCase();
-          const isFavorited = favorites.includes(font.name);
+          const isFavorited = font.name in favorites;
 
           const item = document.createElement('div');
           item.className = 'font-item';
@@ -865,7 +966,14 @@ export function getWebviewContent(
           starBtn.title = isFavorited ? 'Remove from favorites' : 'Add to favorites';
           starBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            vscode.postMessage({ command: 'toggleFavorite', fontName: font.name });
+            const message = { command: 'toggleFavorite', fontName: font.name, context: target };
+
+            // If adding to favorites and settings are dirty, capture current settings
+            if (!isFavorited && dirty[target]) {
+              message.settings = getCurrentSettingsForContext(target);
+            }
+
+            vscode.postMessage(message);
           });
           item.appendChild(starBtn);
 
@@ -880,19 +988,62 @@ export function getWebviewContent(
             const fontName = font.name;
             selectedPreviewFont = fontName;
 
+            // Reset dirty flag when selecting a font
+            dirty[target] = false;
+
+            // Check if this font has saved settings for this context
+            const favoriteData = favorites[fontName];
+            const savedSettings = favoriteData && favoriteData[target];
+
             // Update weight dropdown for this font
             const weightSelectId = target + '-weight';
-            const currentWeight = target === 'editor'
-              ? settings.editorFontWeight
-              : settings.terminalFontWeight;
+            const currentWeight = savedSettings && savedSettings.weight
+              ? savedSettings.weight
+              : (target === 'editor' ? settings.editorFontWeight : settings.terminalFontWeight);
             populateWeightDropdown(weightSelectId, fontName, currentWeight);
 
             if (target === 'editor') {
               currentEditorFont = fontName;
+              console.log('[FontBrowser] Sending setEditorFont:', fontName, 'current settings.editorFont:', settings.editorFont);
               vscode.postMessage({ command: 'setEditorFont', font: "'" + fontName + "', monospace" });
+
+              // Apply saved settings if available
+              if (savedSettings) {
+                if (savedSettings.size !== undefined) {
+                  vscode.postMessage({ command: 'setEditorFontSize', size: savedSettings.size });
+                }
+                if (savedSettings.weight !== undefined) {
+                  vscode.postMessage({ command: 'setEditorFontWeight', weight: savedSettings.weight });
+                }
+                if (savedSettings.lineHeight !== undefined) {
+                  vscode.postMessage({ command: 'setEditorLineHeight', lineHeight: savedSettings.lineHeight });
+                }
+                if (savedSettings.letterSpacing !== undefined) {
+                  vscode.postMessage({ command: 'setEditorLetterSpacing', letterSpacing: savedSettings.letterSpacing });
+                }
+              }
             } else {
               currentTerminalFont = fontName;
               vscode.postMessage({ command: 'setTerminalFont', font: fontName });
+
+              // Apply saved settings if available
+              if (savedSettings) {
+                if (savedSettings.size !== undefined) {
+                  vscode.postMessage({ command: 'setTerminalFontSize', size: savedSettings.size });
+                }
+                if (savedSettings.weight !== undefined) {
+                  vscode.postMessage({ command: 'setTerminalFontWeight', weight: savedSettings.weight });
+                }
+                if (savedSettings.lineHeight !== undefined) {
+                  vscode.postMessage({ command: 'setTerminalLineHeight', lineHeight: savedSettings.lineHeight });
+                }
+                if (savedSettings.letterSpacing !== undefined) {
+                  vscode.postMessage({ command: 'setTerminalLetterSpacing', letterSpacing: savedSettings.letterSpacing });
+                }
+                if (savedSettings.boldWeight !== undefined) {
+                  vscode.postMessage({ command: 'setTerminalBoldWeight', weight: savedSettings.boldWeight });
+                }
+              }
             }
 
             updatePreview();
@@ -928,10 +1079,37 @@ export function getWebviewContent(
       return w;
     }
 
+    function getCurrentSettingsForContext(context) {
+      if (context === 'editor') {
+        return {
+          size: settings.editorFontSize,
+          weight: settings.editorFontWeight,
+          lineHeight: settings.editorLineHeight,
+          letterSpacing: settings.editorLetterSpacing,
+        };
+      } else {
+        return {
+          size: settings.terminalFontSize,
+          weight: settings.terminalFontWeight,
+          lineHeight: settings.terminalLineHeight,
+          letterSpacing: settings.terminalLetterSpacing,
+          boldWeight: settings.terminalBoldWeight,
+        };
+      }
+    }
+
     function updateUI() {
       // Update size inputs
       document.getElementById('editor-size').value = settings.editorFontSize || 14;
       document.getElementById('terminal-size').value = settings.terminalFontSize || 14;
+
+      // Update line height inputs
+      document.getElementById('editor-line-height').value = settings.editorLineHeight || 0;
+      document.getElementById('terminal-line-height').value = settings.terminalLineHeight || 1;
+
+      // Update letter spacing inputs
+      document.getElementById('editor-letter-spacing').value = settings.editorLetterSpacing || 0;
+      document.getElementById('terminal-letter-spacing').value = settings.terminalLetterSpacing || 0;
 
       // Get current font names
       const editorFontName = extractFontFamily(settings.editorFont);
@@ -942,6 +1120,9 @@ export function getWebviewContent(
       // Populate weight dropdowns based on current fonts
       populateWeightDropdown('editor-weight', editorFontName, settings.editorFontWeight);
       populateWeightDropdown('terminal-weight', terminalFontName, settings.terminalFontWeight);
+
+      // Populate terminal bold weight dropdown
+      populateBoldWeightDropdown(settings.terminalBoldWeight);
 
       // Render font lists
       renderFontList('editor', document.getElementById('editor-search').value);
@@ -1012,7 +1193,12 @@ export function getWebviewContent(
         settings.editorFontSize !== previousSettings.editorFontSize ||
         settings.terminalFontSize !== previousSettings.terminalFontSize ||
         settings.editorFontWeight !== previousSettings.editorFontWeight ||
-        settings.terminalFontWeight !== previousSettings.terminalFontWeight;
+        settings.terminalFontWeight !== previousSettings.terminalFontWeight ||
+        settings.editorLineHeight !== previousSettings.editorLineHeight ||
+        settings.terminalLineHeight !== previousSettings.terminalLineHeight ||
+        settings.editorLetterSpacing !== previousSettings.editorLetterSpacing ||
+        settings.terminalLetterSpacing !== previousSettings.terminalLetterSpacing ||
+        settings.terminalBoldWeight !== previousSettings.terminalBoldWeight;
 
       btn.disabled = !hasChanges;
 
@@ -1020,9 +1206,14 @@ export function getWebviewContent(
       document.getElementById('prev-editor-font').textContent = extractFontFamily(previousSettings.editorFont) || 'Default';
       document.getElementById('prev-editor-size').textContent = previousSettings.editorFontSize + 'px';
       document.getElementById('prev-editor-weight').textContent = formatWeight(previousSettings.editorFontWeight);
+      document.getElementById('prev-editor-line-height').textContent = formatLineHeight(previousSettings.editorLineHeight, 'editor');
+      document.getElementById('prev-editor-letter-spacing').textContent = formatLetterSpacing(previousSettings.editorLetterSpacing);
       document.getElementById('prev-terminal-font').textContent = extractFontFamily(previousSettings.terminalFont) || 'Default';
       document.getElementById('prev-terminal-size').textContent = previousSettings.terminalFontSize + 'px';
       document.getElementById('prev-terminal-weight').textContent = formatWeight(previousSettings.terminalFontWeight);
+      document.getElementById('prev-terminal-line-height').textContent = formatLineHeight(previousSettings.terminalLineHeight, 'terminal');
+      document.getElementById('prev-terminal-letter-spacing').textContent = formatLetterSpacing(previousSettings.terminalLetterSpacing);
+      document.getElementById('prev-terminal-bold-weight').textContent = formatBoldWeight(previousSettings.terminalBoldWeight);
     }
 
     function formatWeight(weight) {
@@ -1034,6 +1225,26 @@ export function getWebviewContent(
         '700': 'Bold', '800': 'ExtraBold', '900': 'Black'
       };
       return weight + ' ' + (labels[weight] || '');
+    }
+
+    function formatLineHeight(lh, context) {
+      if (context === 'editor') {
+        return lh === 0 ? 'Auto' : lh + 'px';
+      }
+      return lh === 1 ? 'Default' : lh.toFixed(1);
+    }
+
+    function formatLetterSpacing(ls) {
+      return ls === 0 ? 'Default' : ls + 'px';
+    }
+
+    function formatBoldWeight(weight) {
+      if (!weight || weight === 'bold' || weight === '700') return 'Bold';
+      if (weight === 'normal' || weight === '400') return 'Normal';
+      const labels = {
+        '500': 'Medium', '600': 'SemiBold', '800': 'ExtraBold', '900': 'Black'
+      };
+      return labels[weight] || weight;
     }
 
     // Restore button click handler
@@ -1048,9 +1259,10 @@ export function getWebviewContent(
       switch (message.command) {
         case 'init':
           fonts = message.fonts;
+          fontsLoaded = true;
           settings = message.settings;
           previousSettings = message.previousSettings;
-          favorites = message.favorites || [];
+          favorites = message.favorites || {};
           platform = message.platform || '';
 
           // Hide Variable filter on Windows (no variable font detection)
@@ -1073,7 +1285,7 @@ export function getWebviewContent(
           updateRestoreButton();
           break;
         case 'favoritesUpdated':
-          favorites = message.favorites || [];
+          favorites = message.favorites || {};
           renderFontList('editor', document.getElementById('editor-search').value, message.toggledFont);
           renderFontList('terminal', document.getElementById('terminal-search').value, message.toggledFont);
           break;

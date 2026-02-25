@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { getWebviewContent } from './webview/getWebviewContent';
 import { getSystemFonts } from './fonts';
+import { migrateFavorites, FavoritesData, FavoriteSettings } from './favorites';
 
 export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'fontBrowser.mainView';
@@ -14,22 +15,38 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
     private readonly _context: vscode.ExtensionContext
   ) {}
 
-  private _getFavorites(): string[] {
-    return this._context.globalState.get<string[]>(FontBrowserViewProvider.FAVORITES_KEY, []);
+  private _getFavorites(): FavoritesData {
+    const stored = this._context.globalState.get<FavoritesData | string[]>(FontBrowserViewProvider.FAVORITES_KEY);
+    const favorites = migrateFavorites(stored);
+
+    // If migration happened, save the new format (async, but don't block)
+    if (Array.isArray(stored)) {
+      this._context.globalState.update(FontBrowserViewProvider.FAVORITES_KEY, favorites);
+    }
+
+    return favorites;
   }
 
-  private async _setFavorites(favorites: string[]): Promise<void> {
+  private async _setFavorites(favorites: FavoritesData): Promise<void> {
     await this._context.globalState.update(FontBrowserViewProvider.FAVORITES_KEY, favorites);
   }
 
-  private async _toggleFavorite(fontName: string): Promise<void> {
+  private async _toggleFavorite(
+    fontName: string,
+    context: 'editor' | 'terminal',
+    settings?: FavoriteSettings
+  ): Promise<void> {
     const favorites = this._getFavorites();
-    const index = favorites.indexOf(fontName);
 
-    if (index === -1) {
-      favorites.push(fontName);
+    if (fontName in favorites) {
+      // Unstar: remove the font entirely
+      delete favorites[fontName];
     } else {
-      favorites.splice(index, 1);
+      // Star: add font with optional settings
+      favorites[fontName] = {};
+      if (settings) {
+        favorites[fontName][context] = settings;
+      }
     }
 
     await this._setFavorites(favorites);
@@ -71,6 +88,7 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
         case 'setEditorFont':
+          console.log('[FontBrowser] Received setEditorFont:', message.font);
           await this._updateSetting('editor.fontFamily', message.font);
           break;
         case 'setTerminalFont':
@@ -88,6 +106,21 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
         case 'setTerminalFontWeight':
           await this._updateSetting('terminal.integrated.fontWeight', message.weight);
           break;
+        case 'setEditorLineHeight':
+          await this._updateSetting('editor.lineHeight', message.lineHeight);
+          break;
+        case 'setTerminalLineHeight':
+          await this._updateSetting('terminal.integrated.lineHeight', message.lineHeight);
+          break;
+        case 'setEditorLetterSpacing':
+          await this._updateSetting('editor.letterSpacing', message.letterSpacing);
+          break;
+        case 'setTerminalLetterSpacing':
+          await this._updateSetting('terminal.integrated.letterSpacing', message.letterSpacing);
+          break;
+        case 'setTerminalBoldWeight':
+          await this._updateSetting('terminal.integrated.fontWeightBold', message.weight);
+          break;
         case 'setEditorFontStyle':
           // VS Code doesn't have a direct fontStyle setting for editor
           // but we can use fontLigatures or custom CSS
@@ -99,7 +132,7 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
           await this._restoreSettings();
           break;
         case 'toggleFavorite':
-          await this._toggleFavorite(message.fontName);
+          await this._toggleFavorite(message.fontName, message.context, message.settings);
           break;
       }
     });
@@ -112,7 +145,12 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
         e.affectsConfiguration('editor.fontSize') ||
         e.affectsConfiguration('terminal.integrated.fontSize') ||
         e.affectsConfiguration('editor.fontWeight') ||
-        e.affectsConfiguration('terminal.integrated.fontWeight')
+        e.affectsConfiguration('terminal.integrated.fontWeight') ||
+        e.affectsConfiguration('editor.lineHeight') ||
+        e.affectsConfiguration('terminal.integrated.lineHeight') ||
+        e.affectsConfiguration('editor.letterSpacing') ||
+        e.affectsConfiguration('terminal.integrated.letterSpacing') ||
+        e.affectsConfiguration('terminal.integrated.fontWeightBold')
       ) {
         this._sendCurrentSettings();
       }
@@ -164,6 +202,11 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
       terminalFontSize: config.get<number>('terminal.integrated.fontSize') || 14,
       editorFontWeight: config.get<string>('editor.fontWeight') || 'normal',
       terminalFontWeight: config.get<string>('terminal.integrated.fontWeight') || 'normal',
+      editorLineHeight: config.get<number>('editor.lineHeight') || 0,
+      terminalLineHeight: config.get<number>('terminal.integrated.lineHeight') || 1,
+      editorLetterSpacing: config.get<number>('editor.letterSpacing') || 0,
+      terminalLetterSpacing: config.get<number>('terminal.integrated.letterSpacing') || 0,
+      terminalBoldWeight: config.get<string>('terminal.integrated.fontWeightBold') || 'bold',
     };
   }
 
@@ -184,6 +227,11 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
     await this._updateSetting('terminal.integrated.fontSize', this._previousSettings.terminalFontSize);
     await this._updateSetting('editor.fontWeight', this._previousSettings.editorFontWeight);
     await this._updateSetting('terminal.integrated.fontWeight', this._previousSettings.terminalFontWeight);
+    await this._updateSetting('editor.lineHeight', this._previousSettings.editorLineHeight);
+    await this._updateSetting('terminal.integrated.lineHeight', this._previousSettings.terminalLineHeight);
+    await this._updateSetting('editor.letterSpacing', this._previousSettings.editorLetterSpacing);
+    await this._updateSetting('terminal.integrated.letterSpacing', this._previousSettings.terminalLetterSpacing);
+    await this._updateSetting('terminal.integrated.fontWeightBold', this._previousSettings.terminalBoldWeight);
 
     // Update previous settings to what we just restored from
     // so user can toggle back if they want
