@@ -4,7 +4,7 @@ Browse and preview fonts for your VS Code editor and terminal from a convenient 
 
 **[Install from VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=chadthornton.font-browser)** | Install via CLI: `code --install-extension chadthornton.font-browser`
 
-![Font Browser Screenshot](https://raw.githubusercontent.com/chadthornton/font-browser-vscode/main/images/screenshot.png)
+<img src="https://raw.githubusercontent.com/chadthornton/font-browser-vscode/main/images/screenshot.png" width="400" alt="Font Browser Screenshot">
 
 ## Features
 
