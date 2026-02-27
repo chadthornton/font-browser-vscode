@@ -266,6 +266,7 @@ export function getWebviewContent(
     .font-name {
       flex: 1;
       font-size: 15px;
+      letter-spacing: normal;
     }
 
     .favorite-btn {
@@ -624,6 +625,7 @@ export function getWebviewContent(
     <div class="preview-text" id="preview"></div>
   </div>
   <div class="preview-info" id="preview-info"></div>
+  <div style="font-size:9px;opacity:0.3;text-align:right;padding-top:4px;" id="build-stamp"></div>
 
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
@@ -988,6 +990,10 @@ export function getWebviewContent(
             const fontName = font.name;
             selectedPreviewFont = fontName;
 
+            // Immediately update selection highlight
+            list.querySelectorAll('.font-item.selected').forEach(el => el.classList.remove('selected'));
+            list.querySelectorAll('[data-font="' + fontName + '"]').forEach(el => el.classList.add('selected'));
+
             // Reset dirty flag when selecting a font
             dirty[target] = false;
 
@@ -1004,49 +1010,63 @@ export function getWebviewContent(
 
             if (target === 'editor') {
               currentEditorFont = fontName;
-              console.log('[FontBrowser] Sending setEditorFont:', fontName, 'current settings.editorFont:', settings.editorFont);
-              vscode.postMessage({ command: 'setEditorFont', font: "'" + fontName + "', monospace" });
+              const fontValue = "'" + fontName + "', monospace";
 
-              // Apply saved settings if available
+              // Update local settings immediately (don't wait for extension round-trip)
+              settings.editorFont = fontValue;
+              vscode.postMessage({ command: 'setEditorFont', font: fontValue });
+
               if (savedSettings) {
                 if (savedSettings.size !== undefined) {
+                  settings.editorFontSize = savedSettings.size;
                   vscode.postMessage({ command: 'setEditorFontSize', size: savedSettings.size });
                 }
                 if (savedSettings.weight !== undefined) {
+                  settings.editorFontWeight = savedSettings.weight;
                   vscode.postMessage({ command: 'setEditorFontWeight', weight: savedSettings.weight });
                 }
                 if (savedSettings.lineHeight !== undefined) {
+                  settings.editorLineHeight = savedSettings.lineHeight;
                   vscode.postMessage({ command: 'setEditorLineHeight', lineHeight: savedSettings.lineHeight });
                 }
                 if (savedSettings.letterSpacing !== undefined) {
+                  settings.editorLetterSpacing = savedSettings.letterSpacing;
                   vscode.postMessage({ command: 'setEditorLetterSpacing', letterSpacing: savedSettings.letterSpacing });
                 }
               }
             } else {
               currentTerminalFont = fontName;
+
+              // Update local settings immediately (don't wait for extension round-trip)
+              settings.terminalFont = fontName;
               vscode.postMessage({ command: 'setTerminalFont', font: fontName });
 
-              // Apply saved settings if available
               if (savedSettings) {
                 if (savedSettings.size !== undefined) {
+                  settings.terminalFontSize = savedSettings.size;
                   vscode.postMessage({ command: 'setTerminalFontSize', size: savedSettings.size });
                 }
                 if (savedSettings.weight !== undefined) {
+                  settings.terminalFontWeight = savedSettings.weight;
                   vscode.postMessage({ command: 'setTerminalFontWeight', weight: savedSettings.weight });
                 }
                 if (savedSettings.lineHeight !== undefined) {
+                  settings.terminalLineHeight = savedSettings.lineHeight;
                   vscode.postMessage({ command: 'setTerminalLineHeight', lineHeight: savedSettings.lineHeight });
                 }
                 if (savedSettings.letterSpacing !== undefined) {
+                  settings.terminalLetterSpacing = savedSettings.letterSpacing;
                   vscode.postMessage({ command: 'setTerminalLetterSpacing', letterSpacing: savedSettings.letterSpacing });
                 }
                 if (savedSettings.boldWeight !== undefined) {
+                  settings.terminalBoldWeight = savedSettings.boldWeight;
                   vscode.postMessage({ command: 'setTerminalBoldWeight', weight: savedSettings.boldWeight });
                 }
               }
             }
 
             updatePreview();
+            updateRestoreButton();
           });
 
           list.appendChild(item);
@@ -1139,24 +1159,34 @@ export function getWebviewContent(
       let fontToPreview;
       let sizeToPreview;
       let weightToPreview;
+      let letterSpacingToPreview;
+      let lineHeightToPreview;
 
       if (selectedPreviewFont) {
         fontToPreview = "'" + selectedPreviewFont + "', monospace";
         if (activeTab === 'editor') {
           sizeToPreview = settings.editorFontSize || 14;
           weightToPreview = document.getElementById('editor-weight').value || 'normal';
+          letterSpacingToPreview = settings.editorLetterSpacing || 0;
+          lineHeightToPreview = settings.editorLineHeight || 0;
         } else {
           sizeToPreview = settings.terminalFontSize || 14;
           weightToPreview = document.getElementById('terminal-weight').value || 'normal';
+          letterSpacingToPreview = settings.terminalLetterSpacing || 0;
+          lineHeightToPreview = settings.terminalLineHeight || 1;
         }
       } else if (activeTab === 'editor') {
         fontToPreview = settings.editorFont || 'monospace';
         sizeToPreview = settings.editorFontSize || 14;
         weightToPreview = settings.editorFontWeight || 'normal';
+        letterSpacingToPreview = settings.editorLetterSpacing || 0;
+        lineHeightToPreview = settings.editorLineHeight || 0;
       } else {
         fontToPreview = settings.terminalFont || settings.editorFont || 'monospace';
         sizeToPreview = settings.terminalFontSize || 14;
         weightToPreview = settings.terminalFontWeight || 'normal';
+        letterSpacingToPreview = settings.terminalLetterSpacing || 0;
+        lineHeightToPreview = settings.terminalLineHeight || 1;
       }
 
       // Show preview if we have a font selected or applied
@@ -1166,6 +1196,14 @@ export function getWebviewContent(
         preview.style.fontFamily = fontToPreview;
         preview.style.fontSize = sizeToPreview + 'px';
         preview.style.fontWeight = weightToPreview;
+        preview.style.letterSpacing = letterSpacingToPreview ? letterSpacingToPreview + 'px' : 'normal';
+        if (activeTab === 'editor') {
+          // VS Code editor.lineHeight: 0 = auto (~1.35x font size), >0 = pixels
+          preview.style.lineHeight = lineHeightToPreview > 0 ? lineHeightToPreview + 'px' : '1.5';
+        } else {
+          // VS Code terminal.integrated.lineHeight: multiplier (1 = default)
+          preview.style.lineHeight = String(lineHeightToPreview);
+        }
         preview.textContent = PREVIEW_TEXT;
         preview.className = 'preview-text';
       } else {
@@ -1264,6 +1302,11 @@ export function getWebviewContent(
           previousSettings = message.previousSettings;
           favorites = message.favorites || {};
           platform = message.platform || '';
+
+          // Display build ID
+          if (message.buildId) {
+            document.getElementById('build-stamp').textContent = message.buildId;
+          }
 
           // Hide Variable filter on Windows (no variable font detection)
           if (platform === 'win32') {

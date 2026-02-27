@@ -6,6 +6,7 @@ import { migrateFavorites, FavoritesData, FavoriteSettings } from './favorites';
 export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'fontBrowser.mainView';
   private static readonly FAVORITES_KEY = 'fontBrowser.favorites';
+  private static readonly BUILD_ID = 'jovial-borg';
 
   private _view?: vscode.WebviewView;
   private _previousSettings?: ReturnType<typeof this._getCurrentSettings>;
@@ -88,42 +89,40 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
         case 'setEditorFont':
-          console.log('[FontBrowser] Received setEditorFont:', message.font);
           await this._updateSetting('editor.fontFamily', message.font);
           break;
         case 'setTerminalFont':
-          await this._updateSetting('terminal.integrated.fontFamily', message.font);
+          // HACK: VS Code's terminal renderer has a race condition where onDidChangeConfiguration
+          // fires before the config write is committed, causing it to read the stale font value.
+          // Use helper that forces font atlas rebuild to pick up committed values.
+          await this._updateTerminalSettingWithRefresh('terminal.integrated.fontFamily', message.font);
           break;
         case 'setEditorFontSize':
           await this._updateSetting('editor.fontSize', message.size);
           break;
         case 'setTerminalFontSize':
-          await this._updateSetting('terminal.integrated.fontSize', message.size);
+          await this._updateTerminalSettingWithRefresh('terminal.integrated.fontSize', message.size);
           break;
         case 'setEditorFontWeight':
           await this._updateSetting('editor.fontWeight', message.weight);
           break;
         case 'setTerminalFontWeight':
-          await this._updateSetting('terminal.integrated.fontWeight', message.weight);
+          await this._updateTerminalSettingWithRefresh('terminal.integrated.fontWeight', message.weight);
           break;
         case 'setEditorLineHeight':
           await this._updateSetting('editor.lineHeight', message.lineHeight);
           break;
         case 'setTerminalLineHeight':
-          await this._updateSetting('terminal.integrated.lineHeight', message.lineHeight);
+          await this._updateTerminalSettingWithRefresh('terminal.integrated.lineHeight', message.lineHeight);
           break;
         case 'setEditorLetterSpacing':
           await this._updateSetting('editor.letterSpacing', message.letterSpacing);
           break;
         case 'setTerminalLetterSpacing':
-          await this._updateSetting('terminal.integrated.letterSpacing', message.letterSpacing);
+          await this._updateTerminalSettingWithRefresh('terminal.integrated.letterSpacing', message.letterSpacing);
           break;
         case 'setTerminalBoldWeight':
-          await this._updateSetting('terminal.integrated.fontWeightBold', message.weight);
-          break;
-        case 'setEditorFontStyle':
-          // VS Code doesn't have a direct fontStyle setting for editor
-          // but we can use fontLigatures or custom CSS
+          await this._updateTerminalSettingWithRefresh('terminal.integrated.fontWeightBold', message.weight);
           break;
         case 'getSettings':
           this._sendCurrentSettings();
@@ -134,25 +133,6 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
         case 'toggleFavorite':
           await this._toggleFavorite(message.fontName, message.context, message.settings);
           break;
-      }
-    });
-
-    // Listen for configuration changes
-    vscode.workspace.onDidChangeConfiguration((e) => {
-      if (
-        e.affectsConfiguration('editor.fontFamily') ||
-        e.affectsConfiguration('terminal.integrated.fontFamily') ||
-        e.affectsConfiguration('editor.fontSize') ||
-        e.affectsConfiguration('terminal.integrated.fontSize') ||
-        e.affectsConfiguration('editor.fontWeight') ||
-        e.affectsConfiguration('terminal.integrated.fontWeight') ||
-        e.affectsConfiguration('editor.lineHeight') ||
-        e.affectsConfiguration('terminal.integrated.lineHeight') ||
-        e.affectsConfiguration('editor.letterSpacing') ||
-        e.affectsConfiguration('terminal.integrated.letterSpacing') ||
-        e.affectsConfiguration('terminal.integrated.fontWeightBold')
-      ) {
-        this._sendCurrentSettings();
       }
     });
   }
@@ -181,12 +161,12 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
       previousSettings: this._previousSettings,
       favorites: this._getFavorites(),
       platform: process.platform,
+      buildId: FontBrowserViewProvider.BUILD_ID,
     });
   }
 
   private _sendCurrentSettings() {
     if (!this._view) return;
-
     this._view.webview.postMessage({
       command: 'settingsUpdated',
       settings: this._getCurrentSettings(),
@@ -214,6 +194,22 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
     const config = vscode.workspace.getConfiguration();
     await config.update(key, value, vscode.ConfigurationTarget.Global);
   }
+
+  // Apply terminal setting with font atlas refresh workaround
+  private async _updateTerminalSettingWithRefresh(key: string, value: string | number) {
+    await this._updateSetting(key, value);
+
+    // Capture the font size AFTER the setting update (in case we just changed the size)
+    const config = vscode.workspace.getConfiguration();
+    const currentSize = config.get<number>('terminal.integrated.fontSize') || 12;
+
+    // Zoom in to trigger font atlas rebuild (forces terminal to re-read all committed settings)
+    await vscode.commands.executeCommand('workbench.action.terminal.fontZoomIn');
+
+    // Restore current size (not "original" - might have just been changed)
+    await this._updateSetting('terminal.integrated.fontSize', currentSize);
+  }
+
 
   private async _restoreSettings() {
     if (!this._previousSettings) return;
