@@ -18,6 +18,7 @@ export interface FontInfo {
   isVariable: boolean;
   hasLigatures: boolean;
   hasIcons: boolean;
+  supportsLatin: boolean;
   weights: FontWeight[];
 }
 
@@ -101,11 +102,28 @@ const LIGATURE_FONTS = new Set([
   'Maple Mono',
 ]);
 
+// Language codes that use Latin script
+const LATIN_LANG_CODES = new Set([
+  'aa', 'af', 'ak', 'an', 'ast', 'ay', 'az', 'bem', 'ber', 'bg', 'bi', 'br',
+  'bs', 'ca', 'ch', 'co', 'cs', 'cy', 'da', 'de', 'ee', 'en', 'eo', 'es',
+  'et', 'eu', 'fi', 'fil', 'fj', 'fo', 'fr', 'fur', 'fy', 'ga', 'gd', 'gl',
+  'gn', 'gv', 'ha', 'haw', 'ho', 'hr', 'ht', 'hu', 'ia', 'id', 'ie', 'ig',
+  'ik', 'io', 'is', 'it', 'jv', 'kab', 'ki', 'kj', 'kl', 'kr', 'ku', 'kw',
+  'la', 'lb', 'lg', 'li', 'ln', 'lt', 'lu', 'lv', 'mg', 'mh', 'mi', 'ms',
+  'mt', 'na', 'nb', 'nd', 'nds', 'ng', 'nl', 'nn', 'no', 'nr', 'nso', 'nv',
+  'ny', 'oc', 'om', 'os', 'pap', 'pl', 'pt', 'qu', 'rm', 'rn', 'ro', 'rw',
+  'sc', 'se', 'sg', 'sk', 'sl', 'sm', 'sn', 'so', 'sq', 'sr', 'ss', 'st',
+  'su', 'sv', 'sw', 'tk', 'tl', 'tn', 'to', 'tr', 'ts', 'tw', 'ty', 'uz',
+  've', 'vi', 'vo', 'wa', 'wo', 'xh', 'yo', 'za', 'zu',
+]);
+
 interface FontStyleInfo {
   family: string;
   weight: number;
   hasItalic: boolean;
   isVariable: boolean;
+  supportsLatin: boolean;
+  isMonospace: boolean | null; // null = unknown (no spacing data from fontconfig)
   weightMin?: number;
   weightMax?: number;
 }
@@ -131,7 +149,9 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
           family,
           weight: 80, // Regular
           hasItalic: false,
-          isVariable: false
+          isVariable: false,
+          supportsLatin: true, // No metadata on Windows, default to true
+          isMonospace: null // No spacing metadata on Windows
         }]);
       }
     } catch {
@@ -141,8 +161,8 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
     try {
       // Use full path on macOS since VS Code may not have /opt/homebrew/bin in PATH
       const fcListCmd = process.platform === 'darwin'
-        ? '/opt/homebrew/bin/fc-list : family style weight 2>/dev/null || /usr/local/bin/fc-list : family style weight 2>/dev/null || fc-list : family style weight 2>/dev/null'
-        : 'fc-list : family style weight 2>/dev/null';
+        ? '/opt/homebrew/bin/fc-list : family style weight lang spacing 2>/dev/null || /usr/local/bin/fc-list : family style weight lang spacing 2>/dev/null || fc-list : family style weight lang spacing 2>/dev/null'
+        : 'fc-list : family style weight lang spacing 2>/dev/null';
       const { stdout } = await execAsync(fcListCmd, {
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer for systems with many fonts
       });
@@ -156,6 +176,8 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
         const weightRangeMatch = line.match(/weight=\[(\d+)\s+(\d+)\]/);
         const weightMatch = line.match(/weight=(\d+)(?!\s*\])/);
         const styleMatch = line.match(/style=([^:]+)/);
+        const langMatch = line.match(/lang=([^:]+)/);
+        const spacingMatch = line.match(/spacing=(\d+)/);
 
         if (familyMatch) {
           const family = familyMatch[1].trim();
@@ -164,6 +186,28 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
           if (family.startsWith('.')) continue;
           const style = styleMatch ? styleMatch[1].toLowerCase() : '';
           const hasItalic = style.includes('italic') || style.includes('oblique');
+
+          // fontconfig spacing: 100 = monospace, 90 = dual-width, null = unknown
+          const isMonospace = spacingMatch
+            ? (parseInt(spacingMatch[1], 10) >= 90)
+            : null;
+
+          // Check if font supports Latin script
+          // lang= present means fontconfig has data; empty = no Latin coverage
+          // lang= absent means fontconfig couldn't determine; assume Latin
+          const langField = line.match(/:lang=([^:]*)/);
+          let supportsLatin: boolean;
+          if (langField) {
+            const langStr = langField[1].trim();
+            if (!langStr) {
+              supportsLatin = false; // empty lang = no language coverage data = likely non-Latin symbol font
+            } else {
+              const langs = langStr.split('|').map(l => l.trim());
+              supportsLatin = langs.some(l => LATIN_LANG_CODES.has(l));
+            }
+          } else {
+            supportsLatin = true; // no lang field at all = assume Latin
+          }
 
           if (!fontStyles.has(family)) {
             fontStyles.set(family, []);
@@ -184,11 +228,15 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
                 weight: 80,
                 hasItalic,
                 isVariable: true,
+                supportsLatin,
+                isMonospace,
                 weightMin,
                 weightMax
               });
-            } else if (hasItalic) {
-              existing.hasItalic = true;
+            } else {
+              if (hasItalic) existing.hasItalic = true;
+              if (supportsLatin) existing.supportsLatin = true;
+              if (isMonospace !== null) existing.isMonospace = isMonospace;
             }
           } else {
             const weight = weightMatch ? parseInt(weightMatch[1], 10) : 80;
@@ -197,8 +245,10 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
             const existing = styles.find(s => s.weight === weight && !s.isVariable);
             if (existing) {
               if (hasItalic) existing.hasItalic = true;
+              if (supportsLatin) existing.supportsLatin = true;
+              if (isMonospace !== null) existing.isMonospace = isMonospace;
             } else {
-              styles.push({ family, weight, hasItalic, isVariable: false });
+              styles.push({ family, weight, hasItalic, isVariable: false, supportsLatin, isMonospace });
             }
           }
         }
@@ -291,6 +341,36 @@ export async function getSystemFonts(): Promise<FontInfo[]> {
     { value: '900', label: 'Black', hasItalic: false },
   ];
 
+  // Helper to check monospace status from fontconfig spacing data
+  // Returns true/false if fontconfig has data, null if unknown
+  const fontconfigIsMonospace = (fontName: string): boolean | null => {
+    for (const [family, styles] of fontStyles.entries()) {
+      const baseName = extractFamilyName(family);
+      if (baseName.toLowerCase() === fontName.toLowerCase() ||
+          family.toLowerCase() === fontName.toLowerCase()) {
+        for (const s of styles) {
+          if (s.isMonospace === true) return true;
+          if (s.isMonospace === false) return false;
+        }
+      }
+    }
+    return null; // no data
+  };
+
+  // Helper to check if a font supports Latin script
+  const fontSupportsLatin = (fontName: string): boolean => {
+    for (const [family, styles] of fontStyles.entries()) {
+      const baseName = extractFamilyName(family);
+      if (baseName.toLowerCase() === fontName.toLowerCase() ||
+          family.toLowerCase() === fontName.toLowerCase()) {
+        if (styles.some(s => s.supportsLatin)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
   // Helper to check if a font is variable
   const isFontVariable = (fontName: string): boolean => {
     for (const [family, styles] of fontStyles.entries()) {
@@ -376,6 +456,7 @@ export async function getSystemFonts(): Promise<FontInfo[]> {
         isVariable: isFontVariable(name),
         hasLigatures: hasLigatureSupport(name),
         hasIcons: hasIconSupport(name),
+        supportsLatin: true, // Curated fonts are all Latin-script
         weights: getWeightsForFont(name),
       });
     }
@@ -390,9 +471,15 @@ export async function getSystemFonts(): Promise<FontInfo[]> {
     if (addedFamilies.has(lowerName)) continue;
 
     let category: FontCategory = 'sans-serif';
-    if (looksMonospace(family)) {
+    const fcMono = fontconfigIsMonospace(family);
+    if (fcMono === true) {
       category = 'monospace';
-    } else if (looksSerif(family)) {
+    } else if (fcMono === null && looksMonospace(family)) {
+      // No fontconfig data — fall back to keyword heuristics
+      category = 'monospace';
+    } else if (fcMono === false && looksSerif(family)) {
+      category = 'serif';
+    } else if (fcMono === null && looksSerif(family)) {
       category = 'serif';
     }
 
@@ -404,6 +491,7 @@ export async function getSystemFonts(): Promise<FontInfo[]> {
       isVariable: isFontVariable(family),
       hasLigatures: hasLigatureSupport(family),
       hasIcons: hasIconSupport(family),
+      supportsLatin: fontSupportsLatin(family),
       weights: getWeightsForFont(family),
     });
   }
@@ -430,11 +518,18 @@ function hasIconSupport(fontName: string): boolean {
 
 export function looksMonospace(fontName: string): boolean {
   const name = fontName.toLowerCase();
+
+  // "Propo" suffix = Nerd Font proportional variant — NOT monospace
+  if (name.includes('propo')) return false;
+
   const monoKeywords = [
-    'mono', 'code', 'consol', 'courier', 'terminal', 'fixed',
+    'mono', 'consol', 'courier', 'terminal', 'fixed',
     'typewriter', 'menlo', 'monaco', 'hack', 'iosevka', 'inconsolata',
   ];
-  return monoKeywords.some((keyword) => name.includes(keyword));
+  // "code" as a standalone word (not inside "unicode", etc.)
+  const monoPatterns = [/\bcode\b/];
+  return monoKeywords.some((keyword) => name.includes(keyword)) ||
+    monoPatterns.some((pattern) => pattern.test(name));
 }
 
 export function looksSerif(fontName: string): boolean {
