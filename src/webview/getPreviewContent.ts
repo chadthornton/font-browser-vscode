@@ -31,7 +31,7 @@ export function getPreviewContent(
 
     .preview-text {
       font-size: 14px;
-      line-height: 1.5;
+      line-height: 1;
       white-space: pre-wrap;
       word-break: break-word;
     }
@@ -48,6 +48,13 @@ export function getPreviewContent(
       color: var(--vscode-descriptionForeground);
     }
 
+    .preview-warning {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--vscode-editorWarning-foreground, #cca700);
+      opacity: 0.85;
+    }
+
     .build-stamp {
       font-size: 9px;
       opacity: 0.3;
@@ -59,6 +66,7 @@ export function getPreviewContent(
 <body>
   <div class="preview-text preview-empty" id="preview">Select a font to preview</div>
   <div class="preview-info" id="preview-info"></div>
+  <div class="preview-warning" id="preview-warning"></div>
   <div class="build-stamp" id="build-stamp"></div>
 
   <script nonce="${nonce}">
@@ -72,23 +80,31 @@ export function getPreviewContent(
           const preview = document.getElementById('preview');
           const previewInfo = document.getElementById('preview-info');
 
+          const warning = document.getElementById('preview-warning');
+
           if (message.fontFamily) {
             preview.style.fontFamily = message.fontFamily;
-            preview.style.fontSize = (message.fontSize || 14) + 'px';
+            preview.style.fontSize = '14px';
             preview.style.fontWeight = message.fontWeight || 'normal';
-            preview.style.letterSpacing = message.letterSpacing ? message.letterSpacing + 'px' : 'normal';
-            if (message.context === 'editor') {
-              preview.style.lineHeight = message.lineHeight > 0 ? message.lineHeight + 'px' : '1.5';
-            } else {
-              preview.style.lineHeight = String(message.lineHeight || 1);
-            }
+            preview.style.letterSpacing = 'normal';
+            preview.style.lineHeight = '1';
             preview.textContent = PREVIEW_TEXT;
             preview.className = 'preview-text';
             previewInfo.textContent = message.fontName || '';
+
+            // Show terminal compatibility warnings
+            if (message.context === 'terminal' && message.category && message.category !== 'monospace') {
+              warning.textContent = 'Not monospace — may render with uneven spacing in terminal';
+            } else if (message.context === 'terminal' && message.hasTextureHealing) {
+              warning.textContent = 'Texture healing may cause rendering issues in terminal';
+            } else {
+              warning.textContent = '';
+            }
           } else {
             preview.textContent = 'Select a font to preview';
             preview.className = 'preview-text preview-empty';
             previewInfo.textContent = '';
+            warning.textContent = '';
           }
           break;
         }

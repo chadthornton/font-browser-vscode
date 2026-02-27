@@ -612,7 +612,6 @@ export function getWebviewContent(
         <select class="weight-select" id="terminal-weight"></select>
         <span class="weight-separator">+</span>
         <select class="weight-select" id="terminal-bold-weight" title="Bold text weight"></select>
-        <span class="unit-label">bold</span>
       </div>
       <div class="control-row">
         <input type="number" class="size-input" id="terminal-size" min="8" max="72" step="1" title="Font size">
@@ -1016,6 +1015,10 @@ export function getWebviewContent(
         if (f.latin && !font.supportsLatin) {
           return false;
         }
+        // Hide texture healing fonts from terminal (breaks xterm.js grid rendering)
+        if (target === 'terminal' && font.hasTextureHealing) {
+          return false;
+        }
         return true;
       });
 
@@ -1286,52 +1289,33 @@ export function getWebviewContent(
 
       let fontFamily;
       let fontName;
-      let fontSize;
       let fontWeight;
-      let letterSpacing;
-      let lineHeight;
 
       if (selectedPreviewFont) {
         fontFamily = "'" + selectedPreviewFont + "', monospace";
         fontName = selectedPreviewFont;
-        if (activeTab === 'editor') {
-          fontSize = settings.editorFontSize || 14;
-          fontWeight = document.getElementById('editor-weight').value || 'normal';
-          letterSpacing = settings.editorLetterSpacing || 0;
-          lineHeight = settings.editorLineHeight || 0;
-        } else {
-          fontSize = settings.terminalFontSize || 14;
-          fontWeight = document.getElementById('terminal-weight').value || 'normal';
-          letterSpacing = settings.terminalLetterSpacing || 0;
-          lineHeight = settings.terminalLineHeight || 1;
-        }
+        fontWeight = document.getElementById(activeTab + '-weight').value || 'normal';
       } else if (activeTab === 'editor') {
         fontFamily = settings.editorFont || 'monospace';
         fontName = extractFontFamily(fontFamily);
-        fontSize = settings.editorFontSize || 14;
         fontWeight = settings.editorFontWeight || 'normal';
-        letterSpacing = settings.editorLetterSpacing || 0;
-        lineHeight = settings.editorLineHeight || 0;
       } else {
         fontFamily = settings.terminalFont || settings.editorFont || 'monospace';
         fontName = extractFontFamily(fontFamily);
-        fontSize = settings.terminalFontSize || 14;
         fontWeight = settings.terminalFontWeight || 'normal';
-        letterSpacing = settings.terminalLetterSpacing || 0;
-        lineHeight = settings.terminalLineHeight || 1;
       }
 
       const hasFont = (fontFamily && fontFamily !== 'monospace') || selectedPreviewFont;
+      const fontData = fontName ? fonts.find(f => f.name === fontName) : null;
 
       vscode.postMessage({
         command: 'updatePreview',
         fontFamily: hasFont ? fontFamily : '',
         fontName: hasFont ? fontName : '',
-        fontSize,
         fontWeight,
-        letterSpacing,
-        lineHeight,
         context: activeTab,
+        category: fontData ? fontData.category : null,
+        hasTextureHealing: fontData ? fontData.hasTextureHealing : false,
       });
     }
 

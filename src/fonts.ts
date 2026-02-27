@@ -18,6 +18,7 @@ export interface FontInfo {
   isVariable: boolean;
   hasLigatures: boolean;
   hasIcons: boolean;
+  hasTextureHealing: boolean;
   supportsLatin: boolean;
   weights: FontWeight[];
 }
@@ -38,7 +39,7 @@ const FC_TO_CSS_WEIGHT: Record<number, { value: string; label: string }> = {
 // Common weight/style suffixes to strip from font names
 const WEIGHT_STYLE_SUFFIXES = [
   'Thin', 'Hairline', 'ExtraLight', 'Extra Light', 'UltraLight', 'Ultra Light',
-  'Light', 'Regular', 'Normal', 'Book', 'Roman', 'Medium',
+  'Light', 'Regular', 'Normal', 'Book', 'Medium',
   'SemiBold', 'Semi Bold', 'Semibold', 'DemiBold', 'Demi Bold', 'Demibold',
   'Bold', 'ExtraBold', 'Extra Bold', 'UltraBold', 'Ultra Bold',
   'Black', 'Heavy', 'ExtraBlack', 'Extra Black', 'UltraBlack', 'Ultra Black',
@@ -58,7 +59,7 @@ const FONTS_BY_CATEGORY: Record<FontCategory, string[]> = {
     'SF Mono', 'Monaco', 'Menlo', 'Cascadia Code', 'Cascadia Mono',
     'Source Code Pro', 'IBM Plex Mono', 'Inconsolata', 'Hack', 'Consolas',
     'Ubuntu Mono', 'Roboto Mono', 'Anonymous Pro', 'Droid Sans Mono',
-    'PT Mono', 'DejaVu Sans Mono', 'Courier New', 'Berkeley Mono',
+    'PT Mono', 'DejaVu Sans Mono', 'Courier', 'Courier New', 'Berkeley Mono',
     'Geist Mono', 'Input Mono', 'Iosevka', 'Fantasque Sans Mono',
     'Comic Mono', 'Operator Mono', 'Dank Mono', 'MonoLisa',
     'Recursive Mono', 'Space Mono',
@@ -73,7 +74,7 @@ const FONTS_BY_CATEGORY: Record<FontCategory, string[]> = {
     'New York', 'Georgia', 'Times New Roman', 'Palatino', 'Garamond',
     'Baskerville', 'Cambria', 'Constantia', 'Charter', 'Source Serif Pro',
     'IBM Plex Serif', 'Merriweather', 'Lora', 'Playfair Display',
-    'Crimson Text', 'Libre Baskerville', 'PT Serif', 'American Typewriter', 'Courier',
+    'Crimson Text', 'Libre Baskerville', 'PT Serif', 'American Typewriter',
   ],
 };
 
@@ -100,6 +101,17 @@ const LIGATURE_FONTS = new Set([
   'Liga SFMono Nerd Font',
   'Lilex',
   'Maple Mono',
+]);
+
+// Fonts with texture healing or contextual width adjustments that break terminal grid rendering.
+// These are hidden from the terminal tab since xterm.js can't handle variable-width glyphs.
+const TEXTURE_HEALING_FONTS = new Set([
+  '0xProto',
+  'Monaspace Neon',
+  'Monaspace Argon',
+  'Monaspace Xenon',
+  'Monaspace Radon',
+  'Monaspace Krypton',
 ]);
 
 // Language codes that use Latin script
@@ -456,6 +468,7 @@ export async function getSystemFonts(): Promise<FontInfo[]> {
         isVariable: isFontVariable(name),
         hasLigatures: hasLigatureSupport(name),
         hasIcons: hasIconSupport(name),
+        hasTextureHealing: hasTextureHealingSupport(name),
         supportsLatin: true, // Curated fonts are all Latin-script
         weights: getWeightsForFont(name),
       });
@@ -474,6 +487,9 @@ export async function getSystemFonts(): Promise<FontInfo[]> {
     const fcMono = fontconfigIsMonospace(family);
     if (fcMono === true) {
       category = 'monospace';
+    } else if (family.toLowerCase().includes('propo')) {
+      // Nerd Font "Propo" variants have proportional metadata but monospace-designed glyphs
+      category = 'monospace';
     } else if (fcMono === null && looksMonospace(family)) {
       // No fontconfig data — fall back to keyword heuristics
       category = 'monospace';
@@ -491,6 +507,7 @@ export async function getSystemFonts(): Promise<FontInfo[]> {
       isVariable: isFontVariable(family),
       hasLigatures: hasLigatureSupport(family),
       hasIcons: hasIconSupport(family),
+      hasTextureHealing: hasTextureHealingSupport(family),
       supportsLatin: fontSupportsLatin(family),
       weights: getWeightsForFont(family),
     });
@@ -514,6 +531,16 @@ function hasIconSupport(fontName: string): boolean {
   const lowerName = fontName.toLowerCase();
   // Nerd Fonts contain "nerd" in the name
   return lowerName.includes('nerd');
+}
+
+function hasTextureHealingSupport(fontName: string): boolean {
+  const lowerName = fontName.toLowerCase();
+  for (const thFont of TEXTURE_HEALING_FONTS) {
+    if (lowerName.startsWith(thFont.toLowerCase())) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function looksMonospace(fontName: string): boolean {

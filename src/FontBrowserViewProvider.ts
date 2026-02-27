@@ -8,7 +8,7 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'fontBrowser.mainView';
   private static readonly FAVORITES_KEY = 'fontBrowser.favorites';
   private static readonly ACTIVE_TAB_KEY = 'fontBrowser.activeTab';
-  private static readonly BUILD_ID = 'trim-noether';
+  private static readonly BUILD_ID = 'fast-faraday';
 
   private _view?: vscode.WebviewView;
   private _previousSettings?: ReturnType<typeof this._getCurrentSettings>;
