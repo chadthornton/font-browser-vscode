@@ -2,7 +2,7 @@
   "name": "font-browser",
   "displayName": "Font Browser",
   "description": "Browse and preview fonts for VS Code editor and terminal",
-  "version": "0.0.10-jovial-borg",
+  "version": "0.0.10",
   "publisher": "chadthornton",
   "license": "MIT",
   "repository": {
@@ -36,7 +36,12 @@
         {
           "type": "webview",
           "id": "fontBrowser.mainView",
-          "name": ""
+          "name": "Fonts"
+        },
+        {
+          "type": "webview",
+          "id": "fontBrowser.previewView",
+          "name": "Preview"
         }
       ]
     },

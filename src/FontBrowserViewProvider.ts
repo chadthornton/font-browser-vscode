@@ -2,18 +2,21 @@ import * as vscode from 'vscode';
 import { getWebviewContent } from './webview/getWebviewContent';
 import { getSystemFonts } from './fonts';
 import { migrateFavorites, FavoritesData, FavoriteSettings } from './favorites';
+import { PreviewViewProvider } from './PreviewViewProvider';
 
 export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'fontBrowser.mainView';
   private static readonly FAVORITES_KEY = 'fontBrowser.favorites';
-  private static readonly BUILD_ID = 'jovial-borg';
+  private static readonly ACTIVE_TAB_KEY = 'fontBrowser.activeTab';
+  private static readonly BUILD_ID = 'trim-noether';
 
   private _view?: vscode.WebviewView;
   private _previousSettings?: ReturnType<typeof this._getCurrentSettings>;
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
-    private readonly _context: vscode.ExtensionContext
+    private readonly _context: vscode.ExtensionContext,
+    private readonly _previewProvider: PreviewViewProvider
   ) {}
 
   private _getFavorites(): FavoritesData {
@@ -133,6 +136,24 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
         case 'toggleFavorite':
           await this._toggleFavorite(message.fontName, message.context, message.settings);
           break;
+        case 'setActiveTab':
+          await this._context.globalState.update(FontBrowserViewProvider.ACTIVE_TAB_KEY, message.tab);
+          break;
+        case 'setEditorLigatures':
+          await this._updateSetting('editor.fontLigatures', message.enabled);
+          break;
+        case 'setTerminalLigatures':
+          await this._updateSetting('terminal.integrated.fontLigatures.enabled', message.enabled);
+          break;
+        case 'copySettingsToOther':
+          await this._copySettingsToOther(message.fromTab);
+          break;
+        case 'resetDefaults':
+          await this._resetToDefaults();
+          break;
+        case 'updatePreview':
+          this._previewProvider.updatePreview(message);
+          break;
       }
     });
   }
@@ -154,6 +175,8 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
       this._previousSettings = { ...settings };
     }
 
+    this._previewProvider.setBuildId(FontBrowserViewProvider.BUILD_ID);
+
     this._view.webview.postMessage({
       command: 'init',
       fonts,
@@ -161,6 +184,7 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
       previousSettings: this._previousSettings,
       favorites: this._getFavorites(),
       platform: process.platform,
+      activeTab: this._context.globalState.get<string>(FontBrowserViewProvider.ACTIVE_TAB_KEY) || 'editor',
       buildId: FontBrowserViewProvider.BUILD_ID,
     });
   }
@@ -187,10 +211,12 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
       editorLetterSpacing: config.get<number>('editor.letterSpacing') || 0,
       terminalLetterSpacing: config.get<number>('terminal.integrated.letterSpacing') || 0,
       terminalBoldWeight: config.get<string>('terminal.integrated.fontWeightBold') || 'bold',
+      editorLigatures: config.get<boolean>('editor.fontLigatures') || false,
+      terminalLigatures: config.get<boolean>('terminal.integrated.fontLigatures.enabled') || false,
     };
   }
 
-  private async _updateSetting(key: string, value: string | number) {
+  private async _updateSetting(key: string, value: string | number | boolean) {
     const config = vscode.workspace.getConfiguration();
     await config.update(key, value, vscode.ConfigurationTarget.Global);
   }
@@ -228,6 +254,8 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
     await this._updateSetting('editor.letterSpacing', this._previousSettings.editorLetterSpacing);
     await this._updateSetting('terminal.integrated.letterSpacing', this._previousSettings.terminalLetterSpacing);
     await this._updateSetting('terminal.integrated.fontWeightBold', this._previousSettings.terminalBoldWeight);
+    await this._updateSetting('editor.fontLigatures', this._previousSettings.editorLigatures);
+    await this._updateSetting('terminal.integrated.fontLigatures.enabled', this._previousSettings.terminalLigatures);
 
     // Update previous settings to what we just restored from
     // so user can toggle back if they want
@@ -240,5 +268,55 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
         previousSettings: this._previousSettings,
       });
     }
+  }
+
+  private async _copySettingsToOther(fromTab: 'editor' | 'terminal') {
+    const s = this._getCurrentSettings();
+    if (fromTab === 'editor') {
+      // Copy editor settings to terminal
+      const fontName = this._extractFontFamily(s.editorFont);
+      await this._updateTerminalSettingWithRefresh('terminal.integrated.fontFamily', fontName);
+      await this._updateSetting('terminal.integrated.fontSize', s.editorFontSize);
+      await this._updateSetting('terminal.integrated.fontWeight', s.editorFontWeight);
+      await this._updateSetting('terminal.integrated.lineHeight',
+        s.editorLineHeight === 0 ? 1 : Math.max(1, Math.min(3, s.editorLineHeight / s.editorFontSize)));
+      await this._updateSetting('terminal.integrated.letterSpacing', s.editorLetterSpacing);
+      await this._updateSetting('terminal.integrated.fontLigatures.enabled', s.editorLigatures);
+    } else {
+      // Copy terminal settings to editor
+      const fontName = this._extractFontFamily(s.terminalFont) || this._extractFontFamily(s.editorFont);
+      const fontValue = "'" + fontName + "', monospace";
+      await this._updateSetting('editor.fontFamily', fontValue);
+      await this._updateSetting('editor.fontSize', s.terminalFontSize);
+      await this._updateSetting('editor.fontWeight', s.terminalFontWeight);
+      await this._updateSetting('editor.lineHeight',
+        s.terminalLineHeight === 1 ? 0 : Math.round(s.terminalLineHeight * s.terminalFontSize));
+      await this._updateSetting('editor.letterSpacing', s.terminalLetterSpacing);
+      await this._updateSetting('editor.fontLigatures', s.terminalLigatures);
+    }
+    this._sendCurrentSettings();
+  }
+
+  private async _resetToDefaults() {
+    const config = vscode.workspace.getConfiguration();
+    // Remove all font settings (revert to VS Code defaults)
+    const keys = [
+      'editor.fontFamily', 'editor.fontSize', 'editor.fontWeight',
+      'editor.lineHeight', 'editor.letterSpacing', 'editor.fontLigatures',
+      'terminal.integrated.fontFamily', 'terminal.integrated.fontSize',
+      'terminal.integrated.fontWeight', 'terminal.integrated.lineHeight',
+      'terminal.integrated.letterSpacing', 'terminal.integrated.fontWeightBold',
+      'terminal.integrated.fontLigatures.enabled',
+    ];
+    for (const key of keys) {
+      await config.update(key, undefined, vscode.ConfigurationTarget.Global);
+    }
+    this._sendCurrentSettings();
+  }
+
+  private _extractFontFamily(fontString: string): string {
+    if (!fontString) return '';
+    const match = fontString.match(/^['"]?([^'",]+?)['"]?(?:,|$)/);
+    return match ? match[1].trim() : fontString;
   }
 }

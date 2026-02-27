@@ -100,50 +100,10 @@ export function getWebviewContent(
       color: var(--vscode-input-placeholderForeground);
     }
 
-    .search-row {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 8px;
-      flex-shrink: 0;
-    }
-
     .search-row .search-box {
       margin-bottom: 0;
       width: auto;
       flex: 1;
-    }
-
-    .filter-toggle {
-      background: transparent;
-      border: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
-      border-radius: 4px;
-      color: var(--vscode-foreground);
-      padding: 4px 10px;
-      cursor: pointer;
-      font-size: 12px;
-      opacity: 0.7;
-      flex-shrink: 0;
-      min-width: 70px;
-    }
-
-    .filter-toggle:hover {
-      opacity: 1;
-      background: var(--vscode-list-hoverBackground);
-    }
-
-    .filter-toggle.active {
-      opacity: 1;
-      background: var(--vscode-badge-background);
-      color: var(--vscode-badge-foreground);
-      border-color: var(--vscode-badge-background);
-    }
-
-    .filter-toggle.has-filters {
-      color: var(--vscode-textLink-foreground);
-    }
-
-    .filter-toggle.active.has-filters {
-      color: var(--vscode-badge-foreground);
     }
 
     .filter-panel {
@@ -234,8 +194,8 @@ export function getWebviewContent(
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: var(--vscode-descriptionForeground);
-      background: var(--vscode-sideBarSectionHeader-background);
-      border-bottom: 1px solid var(--vscode-widget-border);
+      background: var(--vscode-input-background);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.10);
       position: sticky;
       top: 0;
       z-index: 1;
@@ -267,6 +227,9 @@ export function getWebviewContent(
       flex: 1;
       font-size: 15px;
       letter-spacing: normal;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .favorite-btn {
@@ -314,10 +277,6 @@ export function getWebviewContent(
       margin-bottom: 0;
     }
 
-    .bold-weight-select {
-      min-width: 80px;
-    }
-
     .size-input {
       width: 55px;
       padding: 4px 6px;
@@ -354,34 +313,28 @@ export function getWebviewContent(
       color: var(--vscode-descriptionForeground);
     }
 
-    .preview-section {
-      padding: 12px;
-      margin-top: 8px;
-      background: var(--vscode-editor-background);
-      border: 1px solid var(--vscode-widget-border);
-      border-radius: 4px;
-      height: 180px;
-      flex-shrink: 0;
-      overflow-y: auto;
-    }
-
-    .preview-text {
-      font-size: 14px;
-      line-height: 1.5;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .preview-empty {
-      color: var(--vscode-descriptionForeground);
-      font-style: italic;
+    .weight-separator {
       font-size: 12px;
+      color: var(--vscode-descriptionForeground);
+      padding: 0 2px;
     }
 
-    .preview-info {
-      margin-top: 6px;
-      font-size: 11px;
-      color: var(--vscode-descriptionForeground);
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--vscode-foreground);
+      cursor: pointer;
+      opacity: 0.8;
+    }
+
+    .toggle-label:hover {
+      opacity: 1;
+    }
+
+    .toggle-label input[type="checkbox"] {
+      cursor: pointer;
     }
 
     .loading {
@@ -392,97 +345,140 @@ export function getWebviewContent(
 
     .header-row {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
+      align-items: center;
       margin-bottom: 8px;
-      gap: 8px;
+      gap: 0;
       flex-shrink: 0;
     }
 
-    .restore-btn {
-      position: relative;
+    .toolbar-icons {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      margin-left: auto;
+    }
+
+    .toolbar-btn {
       background: transparent;
-      border: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.35));
-      color: var(--vscode-descriptionForeground);
-      padding: 4px 8px;
-      border-radius: 3px;
+      border: none;
+      color: var(--vscode-foreground);
       cursor: pointer;
-      font-size: 11px;
+      padding: 4px 5px;
+      border-radius: 3px;
+      opacity: 0.5;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      min-width: 70px;
+      position: relative;
     }
 
-    .restore-btn:hover {
-      color: var(--vscode-foreground);
-      background: var(--vscode-button-secondaryHoverBackground);
+    .toolbar-btn:hover {
+      opacity: 1;
+      background: var(--vscode-list-hoverBackground);
     }
 
-    .restore-btn:disabled {
-      color: var(--vscode-disabledForeground, rgba(128, 128, 128, 0.5));
-      border-color: transparent;
-      cursor: not-allowed;
+    .toolbar-btn.active {
+      opacity: 0.85;
     }
 
-    .restore-icon {
-      font-size: 12px;
+    .toolbar-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
     }
 
-    .restore-tooltip {
+    .toolbar-btn .indicator {
       position: absolute;
-      top: 100%;
-      right: 0;
-      margin-top: 8px;
-      background-color: var(--vscode-menu-background, var(--vscode-editorWidget-background, var(--vscode-sideBar-background)));
-      border: 1px solid var(--vscode-widget-border);
-      border-radius: 4px;
-      padding: 12px 14px;
-      min-width: 240px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      z-index: 1000;
+      top: 3px;
+      right: 3px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--vscode-textLink-foreground);
       display: none;
-      text-align: left;
-      isolation: isolate;
     }
 
-    .restore-btn:hover .restore-tooltip {
+    .toolbar-btn.has-indicator .indicator {
       display: block;
     }
 
-    .tooltip-title {
-      font-size: 14px;
-      margin-bottom: 12px;
-      opacity: 0.7;
+    .search-row {
+      display: none;
+      gap: 6px;
+      margin-bottom: 8px;
+      flex-shrink: 0;
     }
 
-    .tooltip-section {
-      margin-bottom: 16px;
+    .search-row.open {
+      display: flex;
     }
 
-    .tooltip-section:last-child {
-      margin-bottom: 0;
+    .menu-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 999;
+      display: none;
     }
 
-    .tooltip-section-title {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 6px;
+    .menu-overlay.open {
+      display: block;
     }
 
-    .tooltip-item {
-      font-size: 14px;
-      margin-bottom: 3px;
+    .context-menu {
+      position: fixed;
+      top: 0;
+      right: 8px;
+      z-index: 1001;
+      background: var(--vscode-menu-background, var(--vscode-editorWidget-background));
+      border: 1px solid var(--vscode-menu-border, var(--vscode-widget-border));
+      border-radius: 4px;
+      padding: 4px 0;
+      min-width: 220px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      display: none;
+      visibility: hidden;
+      pointer-events: none;
     }
 
-    .tooltip-item:last-child {
-      margin-bottom: 0;
+    .context-menu.open {
+      display: block;
+      visibility: visible;
+      pointer-events: auto;
     }
 
-    .tooltip-value {
-      color: var(--vscode-foreground);
+    .menu-item {
+      padding: 6px 12px;
+      font-size: 12px;
+      color: var(--vscode-menu-foreground, var(--vscode-foreground));
+      cursor: pointer;
+      display: block;
+      width: 100%;
+      background: none;
+      border: none;
+      text-align: left;
+    }
+
+    .menu-item:hover {
+      background: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground));
+      color: var(--vscode-menu-selectionForeground, var(--vscode-foreground));
+    }
+
+    .menu-item:disabled {
+      color: var(--vscode-disabledForeground);
+      cursor: default;
+    }
+
+    .menu-item:disabled:hover {
+      background: none;
+    }
+
+    .menu-separator {
+      height: 1px;
+      background: var(--vscode-menu-separatorBackground, var(--vscode-widget-border));
+      margin: 4px 0;
     }
   </style>
 </head>
@@ -492,32 +488,30 @@ export function getWebviewContent(
       <button class="tab active" data-tab="editor">Editor</button>
       <button class="tab" data-tab="terminal">Terminal</button>
     </div>
-    <button class="restore-btn" id="restore-btn" disabled>
-      <span class="restore-icon">↩</span>
-      Restore
-      <div class="restore-tooltip" id="restore-tooltip">
-        <div class="tooltip-title">Restore to previous selections</div>
-        <div class="tooltip-section">
-          <div class="tooltip-section-title">Editor</div>
-          <div class="tooltip-item"><span class="tooltip-value" id="prev-editor-font">-</span></div>
-          <div class="tooltip-item"><span class="tooltip-value" id="prev-editor-size">-</span> · <span class="tooltip-value" id="prev-editor-weight">-</span></div>
-          <div class="tooltip-item">lh: <span class="tooltip-value" id="prev-editor-line-height">-</span> · ls: <span class="tooltip-value" id="prev-editor-letter-spacing">-</span></div>
-        </div>
-        <div class="tooltip-section">
-          <div class="tooltip-section-title">Terminal</div>
-          <div class="tooltip-item"><span class="tooltip-value" id="prev-terminal-font">-</span></div>
-          <div class="tooltip-item"><span class="tooltip-value" id="prev-terminal-size">-</span> · <span class="tooltip-value" id="prev-terminal-weight">-</span></div>
-          <div class="tooltip-item">lh: <span class="tooltip-value" id="prev-terminal-line-height">-</span> · ls: <span class="tooltip-value" id="prev-terminal-letter-spacing">-</span></div>
-          <div class="tooltip-item">bold: <span class="tooltip-value" id="prev-terminal-bold-weight">-</span></div>
-        </div>
-      </div>
-    </button>
+    <div class="toolbar-icons">
+      <button class="toolbar-btn" id="search-toggle" title="Search">
+        <svg viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/></svg>
+      </button>
+      <button class="toolbar-btn" id="filter-toggle" title="Filters">
+        <svg viewBox="0 0 16 16"><path d="M2 3h12v1.5H2V3zm2 4h8v1.5H4V7zm2 4h4v1.5H6V11z" fill-rule="evenodd"/></svg>
+        <span class="indicator"></span>
+      </button>
+      <button class="toolbar-btn" id="menu-toggle" title="More actions">
+        <svg viewBox="0 0 16 16"><circle cx="3" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="menu-overlay" id="menu-overlay"></div>
+  <div class="context-menu" id="context-menu">
+    <button class="menu-item" id="menu-restore">Restore previous settings</button>
+    <button class="menu-item" id="menu-copy-to-other">Copy settings to Terminal</button>
+    <div class="menu-separator"></div>
+    <button class="menu-item" id="menu-reset-defaults">Reset to VS Code defaults</button>
   </div>
 
   <div id="editor-tab" class="tab-content active">
-    <div class="search-row">
-      <input type="text" class="search-box" id="editor-search" placeholder="Search...">
-      <button class="filter-toggle" id="editor-filter-toggle" title="Toggle filters">Filter</button>
+    <div class="search-row" id="editor-search-row">
+      <input type="text" class="search-box" id="editor-search" placeholder="Search fonts...">
     </div>
     <div class="filter-panel" id="editor-filter-panel">
       <div class="filter-section">
@@ -546,6 +540,9 @@ export function getWebviewContent(
           <label class="filter-chip" data-filter="icons" data-value="true">
             <input type="checkbox"> Icons
           </label>
+          <label class="filter-chip selected" data-filter="latin" data-value="true">
+            <input type="checkbox" checked> Latin
+          </label>
         </div>
       </div>
     </div>
@@ -555,22 +552,24 @@ export function getWebviewContent(
     <div class="controls">
       <div class="control-row">
         <select class="weight-select" id="editor-weight"></select>
-        <input type="number" class="size-input" id="editor-size" min="8" max="72" step="1">
-        <span class="unit-label">px</span>
       </div>
       <div class="control-row">
+        <input type="number" class="size-input" id="editor-size" min="8" max="72" step="1" title="Font size">
+        <span class="unit-label">px</span>
         <input type="number" class="size-input" id="editor-line-height" min="0" max="100" step="1" title="Line height (0 = auto)">
         <span class="unit-label">lh</span>
-        <input type="number" class="size-input" id="editor-letter-spacing" min="-5" max="20" step="0.1" title="Letter spacing">
+        <input type="number" class="size-input" id="editor-letter-spacing" min="-5" max="20" step="0.5" title="Letter spacing">
         <span class="unit-label">ls</span>
+      </div>
+      <div class="control-row">
+        <label class="toggle-label"><input type="checkbox" id="editor-ligatures"> Ligatures</label>
       </div>
     </div>
   </div>
 
   <div id="terminal-tab" class="tab-content">
-    <div class="search-row">
-      <input type="text" class="search-box" id="terminal-search" placeholder="Search...">
-      <button class="filter-toggle" id="terminal-filter-toggle" title="Toggle filters">Filter</button>
+    <div class="search-row" id="terminal-search-row">
+      <input type="text" class="search-box" id="terminal-search" placeholder="Search fonts...">
     </div>
     <div class="filter-panel" id="terminal-filter-panel">
       <div class="filter-section">
@@ -599,6 +598,9 @@ export function getWebviewContent(
           <label class="filter-chip" data-filter="icons" data-value="true">
             <input type="checkbox"> Icons
           </label>
+          <label class="filter-chip selected" data-filter="latin" data-value="true">
+            <input type="checkbox" checked> Latin
+          </label>
         </div>
       </div>
     </div>
@@ -608,24 +610,23 @@ export function getWebviewContent(
     <div class="controls">
       <div class="control-row">
         <select class="weight-select" id="terminal-weight"></select>
-        <input type="number" class="size-input" id="terminal-size" min="8" max="72" step="1">
-        <span class="unit-label">px</span>
+        <span class="weight-separator">+</span>
+        <select class="weight-select" id="terminal-bold-weight" title="Bold text weight"></select>
+        <span class="unit-label">bold</span>
       </div>
       <div class="control-row">
+        <input type="number" class="size-input" id="terminal-size" min="8" max="72" step="1" title="Font size">
+        <span class="unit-label">px</span>
         <input type="number" class="size-input" id="terminal-line-height" min="1" max="3" step="0.1" title="Line height (1 = default)">
         <span class="unit-label">lh</span>
-        <input type="number" class="size-input" id="terminal-letter-spacing" min="-5" max="20" step="1" title="Letter spacing">
+        <input type="number" class="size-input" id="terminal-letter-spacing" min="-5" max="20" step="0.5" title="Letter spacing">
         <span class="unit-label">ls</span>
-        <select class="weight-select bold-weight-select" id="terminal-bold-weight" title="Bold text weight"></select>
+      </div>
+      <div class="control-row">
+        <label class="toggle-label"><input type="checkbox" id="terminal-ligatures"> Ligatures</label>
       </div>
     </div>
   </div>
-
-  <div class="preview-section">
-    <div class="preview-text" id="preview"></div>
-  </div>
-  <div class="preview-info" id="preview-info"></div>
-  <div style="font-size:9px;opacity:0.3;text-align:right;padding-top:4px;" id="build-stamp"></div>
 
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
@@ -652,29 +653,45 @@ export function getWebviewContent(
         categories: new Set(['monospace', 'sans-serif', 'serif']),
         variable: false,
         ligatures: false,
-        icons: false
+        icons: false,
+        latin: true
       },
       terminal: {
         categories: new Set(['monospace', 'sans-serif', 'serif']),
         variable: false,
         ligatures: false,
-        icons: false
+        icons: false,
+        latin: true
       }
     };
 
-    // Canonical font specimen for programming fonts
-    // Tests: character disambiguation, ligatures, brackets, code patterns
-    const PREVIEW_TEXT = '0O 1lI |!¡ {}[]() <> -> => != === <= >= ++ -- const fn = (x) => x * 2; if (arr[0] !== null) { } "string" THE QUICK BROWN FOX the lazy dog jumps';
-
     // Tab switching
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      const tabBtn = document.querySelector('.tab[data-tab="' + tabName + '"]');
+      if (tabBtn) tabBtn.classList.add('active');
+      document.getElementById(tabName + '-tab').classList.add('active');
+      selectedPreviewFont = null;
+
+      // Sync toolbar state with new tab
+      const searchRow = document.getElementById(tabName + '-search-row');
+      const searchToggleBtn = document.getElementById('search-toggle');
+      searchToggleBtn.classList.toggle('active', searchRow.classList.contains('open'));
+
+      const filterPanel = document.getElementById(tabName + '-filter-panel');
+      const filterToggleBtn = document.getElementById('filter-toggle');
+      filterToggleBtn.classList.toggle('active', filterPanel.classList.contains('open'));
+
+      updatePreview();
+      // Defer indicator update since updateFilterIndicator may not exist yet at definition time
+      if (typeof updateFilterIndicator === 'function') updateFilterIndicator();
+    }
+
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
-        selectedPreviewFont = null;
-        updatePreview();
+        switchTab(tab.dataset.tab);
+        vscode.postMessage({ command: 'setActiveTab', tab: tab.dataset.tab });
       });
     });
 
@@ -735,7 +752,7 @@ export function getWebviewContent(
     });
 
     document.getElementById('terminal-letter-spacing').addEventListener('change', (e) => {
-      const letterSpacing = parseInt(e.target.value, 10);
+      const letterSpacing = parseFloat(e.target.value);
       if (letterSpacing >= -5 && letterSpacing <= 20) {
         dirty.terminal = true;
         vscode.postMessage({ command: 'setTerminalLetterSpacing', letterSpacing });
@@ -748,6 +765,15 @@ export function getWebviewContent(
       vscode.postMessage({ command: 'setTerminalBoldWeight', weight: e.target.value });
     });
 
+    // Ligature toggles
+    document.getElementById('editor-ligatures').addEventListener('change', (e) => {
+      vscode.postMessage({ command: 'setEditorLigatures', enabled: e.target.checked });
+    });
+
+    document.getElementById('terminal-ligatures').addEventListener('change', (e) => {
+      vscode.postMessage({ command: 'setTerminalLigatures', enabled: e.target.checked });
+    });
+
     // Search functionality
     document.getElementById('editor-search').addEventListener('input', (e) => {
       renderFontList('editor', e.target.value);
@@ -757,17 +783,109 @@ export function getWebviewContent(
       renderFontList('terminal', e.target.value);
     });
 
-    // Filter toggle handlers
+    // Toolbar: Search toggle
+    const searchToggle = document.getElementById('search-toggle');
+    searchToggle.addEventListener('click', () => {
+      const activeTab = getActiveTab();
+      const searchRow = document.getElementById(activeTab + '-search-row');
+      const isOpen = searchRow.classList.toggle('open');
+      searchToggle.classList.toggle('active', isOpen);
+      if (isOpen) {
+        document.getElementById(activeTab + '-search').focus();
+      } else {
+        // Clear search when closing
+        const searchInput = document.getElementById(activeTab + '-search');
+        searchInput.value = '';
+        renderFontList(activeTab, '');
+      }
+    });
+
+    // Toolbar: Filter toggle
+    const filterToggle = document.getElementById('filter-toggle');
+    filterToggle.addEventListener('click', () => {
+      const activeTab = getActiveTab();
+      const panel = document.getElementById(activeTab + '-filter-panel');
+      const isOpen = panel.classList.toggle('open');
+      filterToggle.classList.toggle('active', isOpen);
+    });
+
+    // Toolbar: Menu toggle
+    const menuToggle = document.getElementById('menu-toggle');
+    const contextMenu = document.getElementById('context-menu');
+    const menuOverlay = document.getElementById('menu-overlay');
+
+    function openMenu() {
+      // Position menu below the toggle button
+      const rect = menuToggle.getBoundingClientRect();
+      contextMenu.style.top = (rect.bottom + 4) + 'px';
+      contextMenu.style.right = (window.innerWidth - rect.right) + 'px';
+      contextMenu.classList.add('open');
+      menuOverlay.classList.add('open');
+      updateMenuState();
+    }
+
+    function closeMenu() {
+      contextMenu.classList.remove('open');
+      menuOverlay.classList.remove('open');
+    }
+
+    menuToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (contextMenu.classList.contains('open')) {
+        closeMenu();
+      } else {
+        openMenu();
+      }
+    });
+
+    menuOverlay.addEventListener('click', closeMenu);
+
+    function updateMenuState() {
+      const activeTab = getActiveTab();
+      const otherTab = activeTab === 'editor' ? 'Terminal' : 'Editor';
+      document.getElementById('menu-copy-to-other').textContent = 'Copy settings to ' + otherTab;
+
+      const restoreBtn = document.getElementById('menu-restore');
+      restoreBtn.disabled = !hasSettingsChanges();
+    }
+
+    // Menu actions
+    document.getElementById('menu-restore').addEventListener('click', () => {
+      closeMenu();
+      vscode.postMessage({ command: 'restoreSettings' });
+    });
+
+    document.getElementById('menu-copy-to-other').addEventListener('click', () => {
+      closeMenu();
+      const activeTab = getActiveTab();
+      vscode.postMessage({ command: 'copySettingsToOther', fromTab: activeTab });
+    });
+
+    document.getElementById('menu-reset-defaults').addEventListener('click', () => {
+      closeMenu();
+      vscode.postMessage({ command: 'resetDefaults' });
+    });
+
+    function hasSettingsChanges() {
+      if (!previousSettings) return false;
+      return settings.editorFont !== previousSettings.editorFont ||
+        settings.terminalFont !== previousSettings.terminalFont ||
+        settings.editorFontSize !== previousSettings.editorFontSize ||
+        settings.terminalFontSize !== previousSettings.terminalFontSize ||
+        settings.editorFontWeight !== previousSettings.editorFontWeight ||
+        settings.terminalFontWeight !== previousSettings.terminalFontWeight ||
+        settings.editorLineHeight !== previousSettings.editorLineHeight ||
+        settings.terminalLineHeight !== previousSettings.terminalLineHeight ||
+        settings.editorLetterSpacing !== previousSettings.editorLetterSpacing ||
+        settings.terminalLetterSpacing !== previousSettings.terminalLetterSpacing ||
+        settings.terminalBoldWeight !== previousSettings.terminalBoldWeight ||
+        settings.editorLigatures !== previousSettings.editorLigatures ||
+        settings.terminalLigatures !== previousSettings.terminalLigatures;
+    }
+
+    // Filter chip handlers (for both tabs)
     ['editor', 'terminal'].forEach(target => {
-      const toggle = document.getElementById(target + '-filter-toggle');
       const panel = document.getElementById(target + '-filter-panel');
-
-      toggle.addEventListener('click', () => {
-        const isOpen = panel.classList.toggle('open');
-        toggle.classList.toggle('active', isOpen);
-      });
-
-      // Filter chip handlers
       panel.querySelectorAll('.filter-chip').forEach(chip => {
         chip.addEventListener('click', (e) => {
           e.preventDefault();
@@ -775,7 +893,6 @@ export function getWebviewContent(
           const value = chip.dataset.value;
 
           if (filterType === 'category') {
-            // Category filters are multi-select
             if (chip.classList.contains('selected')) {
               chip.classList.remove('selected');
               filters[target].categories.delete(value);
@@ -784,24 +901,26 @@ export function getWebviewContent(
               filters[target].categories.add(value);
             }
           } else {
-            // Feature filters are toggles
             const newState = !chip.classList.contains('selected');
             chip.classList.toggle('selected', newState);
             filters[target][filterType] = newState;
           }
 
-          updateFilterToggleState(target);
+          updateFilterIndicator();
           renderFontList(target, document.getElementById(target + '-search').value);
         });
       });
     });
 
-    function updateFilterToggleState(target) {
-      const toggle = document.getElementById(target + '-filter-toggle');
-      const f = filters[target];
-      // Has active filters if: not all categories selected, or any feature filter on
-      const hasActiveFilters = f.categories.size < 3 || f.variable || f.ligatures || f.icons;
-      toggle.classList.toggle('has-filters', hasActiveFilters);
+    function getActiveTab() {
+      return document.querySelector('.tab.active').dataset.tab;
+    }
+
+    function updateFilterIndicator() {
+      const activeTab = getActiveTab();
+      const f = filters[activeTab];
+      const hasActiveFilters = f.categories.size < 3 || f.variable || f.ligatures || f.icons || !f.latin;
+      filterToggle.classList.toggle('has-indicator', hasActiveFilters);
     }
 
     function findFontByName(fontName) {
@@ -894,6 +1013,9 @@ export function getWebviewContent(
         if (f.icons && !font.hasIcons) {
           return false;
         }
+        if (f.latin && !font.supportsLatin) {
+          return false;
+        }
         return true;
       });
 
@@ -983,6 +1105,10 @@ export function getWebviewContent(
           nameSpan.className = 'font-name';
           nameSpan.style.fontFamily = "'" + font.name + "', monospace";
           nameSpan.textContent = font.name;
+          // Show tooltip only when text is truncated
+          nameSpan.addEventListener('mouseenter', () => {
+            nameSpan.title = nameSpan.scrollWidth > nameSpan.clientWidth ? font.name : '';
+          });
           item.appendChild(nameSpan);
 
           // Click handler - apply font
@@ -1144,6 +1270,10 @@ export function getWebviewContent(
       // Populate terminal bold weight dropdown
       populateBoldWeightDropdown(settings.terminalBoldWeight);
 
+      // Update ligature checkboxes
+      document.getElementById('editor-ligatures').checked = !!settings.editorLigatures;
+      document.getElementById('terminal-ligatures').checked = !!settings.terminalLigatures;
+
       // Render font lists
       renderFontList('editor', document.getElementById('editor-search').value);
       renderFontList('terminal', document.getElementById('terminal-search').value);
@@ -1152,143 +1282,61 @@ export function getWebviewContent(
     }
 
     function updatePreview() {
-      const preview = document.getElementById('preview');
       const activeTab = document.querySelector('.tab.active').dataset.tab;
 
-      // Determine which font to preview
-      let fontToPreview;
-      let sizeToPreview;
-      let weightToPreview;
-      let letterSpacingToPreview;
-      let lineHeightToPreview;
+      let fontFamily;
+      let fontName;
+      let fontSize;
+      let fontWeight;
+      let letterSpacing;
+      let lineHeight;
 
       if (selectedPreviewFont) {
-        fontToPreview = "'" + selectedPreviewFont + "', monospace";
+        fontFamily = "'" + selectedPreviewFont + "', monospace";
+        fontName = selectedPreviewFont;
         if (activeTab === 'editor') {
-          sizeToPreview = settings.editorFontSize || 14;
-          weightToPreview = document.getElementById('editor-weight').value || 'normal';
-          letterSpacingToPreview = settings.editorLetterSpacing || 0;
-          lineHeightToPreview = settings.editorLineHeight || 0;
+          fontSize = settings.editorFontSize || 14;
+          fontWeight = document.getElementById('editor-weight').value || 'normal';
+          letterSpacing = settings.editorLetterSpacing || 0;
+          lineHeight = settings.editorLineHeight || 0;
         } else {
-          sizeToPreview = settings.terminalFontSize || 14;
-          weightToPreview = document.getElementById('terminal-weight').value || 'normal';
-          letterSpacingToPreview = settings.terminalLetterSpacing || 0;
-          lineHeightToPreview = settings.terminalLineHeight || 1;
+          fontSize = settings.terminalFontSize || 14;
+          fontWeight = document.getElementById('terminal-weight').value || 'normal';
+          letterSpacing = settings.terminalLetterSpacing || 0;
+          lineHeight = settings.terminalLineHeight || 1;
         }
       } else if (activeTab === 'editor') {
-        fontToPreview = settings.editorFont || 'monospace';
-        sizeToPreview = settings.editorFontSize || 14;
-        weightToPreview = settings.editorFontWeight || 'normal';
-        letterSpacingToPreview = settings.editorLetterSpacing || 0;
-        lineHeightToPreview = settings.editorLineHeight || 0;
+        fontFamily = settings.editorFont || 'monospace';
+        fontName = extractFontFamily(fontFamily);
+        fontSize = settings.editorFontSize || 14;
+        fontWeight = settings.editorFontWeight || 'normal';
+        letterSpacing = settings.editorLetterSpacing || 0;
+        lineHeight = settings.editorLineHeight || 0;
       } else {
-        fontToPreview = settings.terminalFont || settings.editorFont || 'monospace';
-        sizeToPreview = settings.terminalFontSize || 14;
-        weightToPreview = settings.terminalFontWeight || 'normal';
-        letterSpacingToPreview = settings.terminalLetterSpacing || 0;
-        lineHeightToPreview = settings.terminalLineHeight || 1;
+        fontFamily = settings.terminalFont || settings.editorFont || 'monospace';
+        fontName = extractFontFamily(fontFamily);
+        fontSize = settings.terminalFontSize || 14;
+        fontWeight = settings.terminalFontWeight || 'normal';
+        letterSpacing = settings.terminalLetterSpacing || 0;
+        lineHeight = settings.terminalLineHeight || 1;
       }
 
-      // Show preview if we have a font selected or applied
-      const hasFont = fontToPreview && fontToPreview !== 'monospace';
+      const hasFont = (fontFamily && fontFamily !== 'monospace') || selectedPreviewFont;
 
-      if (hasFont || selectedPreviewFont) {
-        preview.style.fontFamily = fontToPreview;
-        preview.style.fontSize = sizeToPreview + 'px';
-        preview.style.fontWeight = weightToPreview;
-        preview.style.letterSpacing = letterSpacingToPreview ? letterSpacingToPreview + 'px' : 'normal';
-        if (activeTab === 'editor') {
-          // VS Code editor.lineHeight: 0 = auto (~1.35x font size), >0 = pixels
-          preview.style.lineHeight = lineHeightToPreview > 0 ? lineHeightToPreview + 'px' : '1.5';
-        } else {
-          // VS Code terminal.integrated.lineHeight: multiplier (1 = default)
-          preview.style.lineHeight = String(lineHeightToPreview);
-        }
-        preview.textContent = PREVIEW_TEXT;
-        preview.className = 'preview-text';
-      } else {
-        preview.textContent = '';
-        preview.className = 'preview-text preview-empty';
-      }
-
-      // Update preview info with font name
-      const previewInfo = document.getElementById('preview-info');
-      const fontName = selectedPreviewFont || extractFontFamily(fontToPreview);
-      previewInfo.textContent = fontName && fontName !== 'monospace' ? fontName : '';
+      vscode.postMessage({
+        command: 'updatePreview',
+        fontFamily: hasFont ? fontFamily : '',
+        fontName: hasFont ? fontName : '',
+        fontSize,
+        fontWeight,
+        letterSpacing,
+        lineHeight,
+        context: activeTab,
+      });
     }
 
-    function updateRestoreButton() {
-      const btn = document.getElementById('restore-btn');
-      if (!previousSettings) {
-        btn.disabled = true;
-        return;
-      }
-
-      // Check if current settings differ from previous
-      const hasChanges =
-        settings.editorFont !== previousSettings.editorFont ||
-        settings.terminalFont !== previousSettings.terminalFont ||
-        settings.editorFontSize !== previousSettings.editorFontSize ||
-        settings.terminalFontSize !== previousSettings.terminalFontSize ||
-        settings.editorFontWeight !== previousSettings.editorFontWeight ||
-        settings.terminalFontWeight !== previousSettings.terminalFontWeight ||
-        settings.editorLineHeight !== previousSettings.editorLineHeight ||
-        settings.terminalLineHeight !== previousSettings.terminalLineHeight ||
-        settings.editorLetterSpacing !== previousSettings.editorLetterSpacing ||
-        settings.terminalLetterSpacing !== previousSettings.terminalLetterSpacing ||
-        settings.terminalBoldWeight !== previousSettings.terminalBoldWeight;
-
-      btn.disabled = !hasChanges;
-
-      // Update tooltip content
-      document.getElementById('prev-editor-font').textContent = extractFontFamily(previousSettings.editorFont) || 'Default';
-      document.getElementById('prev-editor-size').textContent = previousSettings.editorFontSize + 'px';
-      document.getElementById('prev-editor-weight').textContent = formatWeight(previousSettings.editorFontWeight);
-      document.getElementById('prev-editor-line-height').textContent = formatLineHeight(previousSettings.editorLineHeight, 'editor');
-      document.getElementById('prev-editor-letter-spacing').textContent = formatLetterSpacing(previousSettings.editorLetterSpacing);
-      document.getElementById('prev-terminal-font').textContent = extractFontFamily(previousSettings.terminalFont) || 'Default';
-      document.getElementById('prev-terminal-size').textContent = previousSettings.terminalFontSize + 'px';
-      document.getElementById('prev-terminal-weight').textContent = formatWeight(previousSettings.terminalFontWeight);
-      document.getElementById('prev-terminal-line-height').textContent = formatLineHeight(previousSettings.terminalLineHeight, 'terminal');
-      document.getElementById('prev-terminal-letter-spacing').textContent = formatLetterSpacing(previousSettings.terminalLetterSpacing);
-      document.getElementById('prev-terminal-bold-weight').textContent = formatBoldWeight(previousSettings.terminalBoldWeight);
-    }
-
-    function formatWeight(weight) {
-      if (!weight || weight === 'normal') return '400 Regular';
-      if (weight === 'bold') return '700 Bold';
-      const labels = {
-        '100': 'Thin', '200': 'ExtraLight', '300': 'Light',
-        '400': 'Regular', '500': 'Medium', '600': 'SemiBold',
-        '700': 'Bold', '800': 'ExtraBold', '900': 'Black'
-      };
-      return weight + ' ' + (labels[weight] || '');
-    }
-
-    function formatLineHeight(lh, context) {
-      if (context === 'editor') {
-        return lh === 0 ? 'Auto' : lh + 'px';
-      }
-      return lh === 1 ? 'Default' : lh.toFixed(1);
-    }
-
-    function formatLetterSpacing(ls) {
-      return ls === 0 ? 'Default' : ls + 'px';
-    }
-
-    function formatBoldWeight(weight) {
-      if (!weight || weight === 'bold' || weight === '700') return 'Bold';
-      if (weight === 'normal' || weight === '400') return 'Normal';
-      const labels = {
-        '500': 'Medium', '600': 'SemiBold', '800': 'ExtraBold', '900': 'Black'
-      };
-      return labels[weight] || weight;
-    }
-
-    // Restore button click handler
-    document.getElementById('restore-btn').addEventListener('click', () => {
-      vscode.postMessage({ command: 'restoreSettings' });
-    });
+    // No-op — restore is now in the context menu
+    function updateRestoreButton() {}
 
     // Handle messages from extension
     window.addEventListener('message', event => {
@@ -1303,16 +1351,16 @@ export function getWebviewContent(
           favorites = message.favorites || {};
           platform = message.platform || '';
 
-          // Display build ID
-          if (message.buildId) {
-            document.getElementById('build-stamp').textContent = message.buildId;
-          }
-
-          // Hide Variable filter on Windows (no variable font detection)
+          // Hide Variable and Latin filters on Windows (no metadata available)
           if (platform === 'win32') {
-            document.querySelectorAll('[data-filter="variable"]').forEach(el => {
+            document.querySelectorAll('[data-filter="variable"], [data-filter="latin"]').forEach(el => {
               el.style.display = 'none';
             });
+          }
+
+          // Restore active tab from saved state
+          if (message.activeTab && message.activeTab !== 'editor') {
+            switchTab(message.activeTab);
           }
 
           updateUI();
