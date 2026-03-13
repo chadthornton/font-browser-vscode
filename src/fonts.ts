@@ -175,8 +175,8 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
     try {
       // Use full path on macOS since VS Code may not have /opt/homebrew/bin in PATH
       const fcListCmd = process.platform === 'darwin'
-        ? '/opt/homebrew/bin/fc-list : family style weight lang spacing 2>/dev/null || /usr/local/bin/fc-list : family style weight lang spacing 2>/dev/null || fc-list : family style weight lang spacing 2>/dev/null'
-        : 'fc-list : family style weight lang spacing 2>/dev/null';
+        ? '/opt/homebrew/bin/fc-list : family style weight lang spacing variable 2>/dev/null || /usr/local/bin/fc-list : family style weight lang spacing variable 2>/dev/null || fc-list : family style weight lang spacing variable 2>/dev/null'
+        : 'fc-list : family style weight lang spacing variable 2>/dev/null';
       const { stdout } = await execAsync(fcListCmd, {
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer for systems with many fonts
       });
@@ -192,6 +192,8 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
         const styleMatch = line.match(/style=([^:]+)/);
         const langMatch = line.match(/lang=([^:]+)/);
         const spacingMatch = line.match(/spacing=(\d+)/);
+        const variableMatch = line.match(/variable=(True|False)/);
+        const isFontconfigVariable = variableMatch?.[1] === 'True';
 
         if (familyMatch) {
           const family = familyMatch[1].trim();
@@ -229,10 +231,10 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
 
           const styles = fontStyles.get(family)!;
 
-          if (weightRangeMatch) {
-            // Variable font with weight range
-            const weightMin = parseInt(weightRangeMatch[1], 10);
-            const weightMax = parseInt(weightRangeMatch[2], 10);
+          if (weightRangeMatch || isFontconfigVariable) {
+            // Variable font — detected via weight range notation or fontconfig variable=True
+            const weightMin = weightRangeMatch ? parseInt(weightRangeMatch[1], 10) : undefined;
+            const weightMax = weightRangeMatch ? parseInt(weightRangeMatch[2], 10) : undefined;
 
             // Add entry marking this as variable
             const existing = styles.find(s => s.isVariable);
@@ -251,6 +253,11 @@ async function getFontStylesFromSystem(): Promise<Map<string, FontStyleInfo[]>> 
               if (hasItalic) existing.hasItalic = true;
               if (supportsLatin) existing.supportsLatin = true;
               if (isMonospace !== null) existing.isMonospace = isMonospace;
+              // Merge weight range if this line has it and existing doesn't
+              if (weightMin !== undefined && existing.weightMin === undefined) {
+                existing.weightMin = weightMin;
+                existing.weightMax = weightMax;
+              }
             }
           } else {
             const weight = weightMatch ? parseInt(weightMatch[1], 10) : 80;
