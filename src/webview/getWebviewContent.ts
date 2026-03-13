@@ -653,7 +653,7 @@ export function getWebviewContent(
     let selectedPreviewFont = null;
     let currentEditorFont = null;
     let currentTerminalFont = null;
-    let preserveFontSettings = false;
+    let preserveFontSettings = true;
 
     // Track whether settings have changed since last font selection (per tab)
     const dirty = {
@@ -908,7 +908,7 @@ export function getWebviewContent(
       restoreBtn.disabled = !hasSettingsChanges();
 
       const preserveBtn = document.getElementById('menu-preserve-settings');
-      preserveBtn.textContent = (preserveFontSettings ? '\u2713 ' : '') + 'Preserve font settings';
+      preserveBtn.textContent = (preserveFontSettings ? '\u2713 ' : '') + 'Preserve settings on favorites';
     }
 
     // Menu actions
@@ -1235,11 +1235,14 @@ export function getWebviewContent(
             if (preserveFontSettings) {
               const prevFont = target === 'editor' ? currentEditorFont : currentTerminalFont;
               if (prevFont && prevFont in favorites) {
+                const saveSettings = getCurrentSettingsForContext(target);
+                // Update local favorites immediately (don't wait for round-trip)
+                favorites[prevFont][target] = saveSettings;
                 vscode.postMessage({
                   command: 'saveFavoriteSettings',
                   fontName: prevFont,
                   context: target,
-                  settings: getCurrentSettingsForContext(target),
+                  settings: saveSettings,
                 });
               }
             }
@@ -1273,6 +1276,7 @@ export function getWebviewContent(
               if (savedSettings) {
                 if (savedSettings.size !== undefined) {
                   settings.editorFontSize = savedSettings.size;
+                  document.getElementById('editor-size').value = savedSettings.size;
                   vscode.postMessage({ command: 'setEditorFontSize', size: savedSettings.size });
                 }
                 if (savedSettings.weight !== undefined) {
@@ -1281,10 +1285,12 @@ export function getWebviewContent(
                 }
                 if (savedSettings.lineHeight !== undefined) {
                   settings.editorLineHeight = savedSettings.lineHeight;
+                  document.getElementById('editor-line-height').value = savedSettings.lineHeight;
                   vscode.postMessage({ command: 'setEditorLineHeight', lineHeight: savedSettings.lineHeight });
                 }
                 if (savedSettings.letterSpacing !== undefined) {
                   settings.editorLetterSpacing = savedSettings.letterSpacing;
+                  document.getElementById('editor-letter-spacing').value = savedSettings.letterSpacing;
                   vscode.postMessage({ command: 'setEditorLetterSpacing', letterSpacing: savedSettings.letterSpacing });
                 }
               }
@@ -1304,6 +1310,7 @@ export function getWebviewContent(
               if (savedSettings) {
                 if (savedSettings.size !== undefined) {
                   settings.terminalFontSize = savedSettings.size;
+                  document.getElementById('terminal-size').value = savedSettings.size;
                   vscode.postMessage({ command: 'setTerminalFontSize', size: savedSettings.size });
                 }
                 if (savedSettings.weight !== undefined) {
@@ -1312,10 +1319,12 @@ export function getWebviewContent(
                 }
                 if (savedSettings.lineHeight !== undefined) {
                   settings.terminalLineHeight = savedSettings.lineHeight;
+                  document.getElementById('terminal-line-height').value = savedSettings.lineHeight;
                   vscode.postMessage({ command: 'setTerminalLineHeight', lineHeight: savedSettings.lineHeight });
                 }
                 if (savedSettings.letterSpacing !== undefined) {
                   settings.terminalLetterSpacing = savedSettings.letterSpacing;
+                  document.getElementById('terminal-letter-spacing').value = savedSettings.letterSpacing;
                   vscode.postMessage({ command: 'setTerminalLetterSpacing', letterSpacing: savedSettings.letterSpacing });
                 }
                 if (savedSettings.boldWeight !== undefined) {
@@ -1469,7 +1478,7 @@ export function getWebviewContent(
           previousSettings = message.previousSettings;
           favorites = message.favorites || {};
           platform = message.platform || '';
-          preserveFontSettings = message.preserveFontSettings || false;
+          preserveFontSettings = message.preserveFontSettings ?? true;
 
           // Hide Variable and Latin filters on Windows (no metadata available)
           if (platform === 'win32') {

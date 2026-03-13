@@ -9,7 +9,7 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
   private static readonly FAVORITES_KEY = 'fontBrowser.favorites';
   private static readonly ACTIVE_TAB_KEY = 'fontBrowser.activeTab';
   private static readonly PRESERVE_SETTINGS_KEY = 'fontBrowser.preserveFontSettings';
-  private static readonly BUILD_ID = 'deft-feynman';
+  private static readonly BUILD_ID = 'lush-kepler';
 
   private _view?: vscode.WebviewView;
   private _previousSettings?: ReturnType<typeof this._getCurrentSettings>;
@@ -156,7 +156,7 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
           this._previewProvider.updatePreview(message);
           break;
         case 'togglePreserveFontSettings': {
-          const current = this._context.globalState.get<boolean>(FontBrowserViewProvider.PRESERVE_SETTINGS_KEY) || false;
+          const current = this._context.globalState.get<boolean>(FontBrowserViewProvider.PRESERVE_SETTINGS_KEY) ?? true;
           const newValue = !current;
           await this._context.globalState.update(FontBrowserViewProvider.PRESERVE_SETTINGS_KEY, newValue);
           if (this._view) {
@@ -208,7 +208,7 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
       favorites: this._getFavorites(),
       platform: process.platform,
       activeTab: this._context.globalState.get<string>(FontBrowserViewProvider.ACTIVE_TAB_KEY) || 'editor',
-      preserveFontSettings: this._context.globalState.get<boolean>(FontBrowserViewProvider.PRESERVE_SETTINGS_KEY) || false,
+      preserveFontSettings: this._context.globalState.get<boolean>(FontBrowserViewProvider.PRESERVE_SETTINGS_KEY) ?? true,
       buildId: FontBrowserViewProvider.BUILD_ID,
     });
   }
