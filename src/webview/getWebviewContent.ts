@@ -292,6 +292,16 @@ export function getWebviewContent(
       border-color: var(--vscode-focusBorder);
     }
 
+    .weight-number-input {
+      width: 80px;
+      min-width: 80px;
+    }
+
+    .weight-number-input::placeholder {
+      color: var(--vscode-input-placeholderForeground);
+      font-size: 11px;
+    }
+
     .weight-select {
       padding: 4px 6px;
       background: var(--vscode-input-background);
@@ -505,6 +515,7 @@ export function getWebviewContent(
   <div class="context-menu" id="context-menu">
     <button class="menu-item" id="menu-restore">Restore previous settings</button>
     <button class="menu-item" id="menu-copy-to-other">Copy settings to Terminal</button>
+    <button class="menu-item" id="menu-preserve-settings">Preserve font settings</button>
     <div class="menu-separator"></div>
     <button class="menu-item" id="menu-reset-defaults">Reset to VS Code defaults</button>
   </div>
@@ -552,6 +563,7 @@ export function getWebviewContent(
     <div class="controls">
       <div class="control-row">
         <select class="weight-select" id="editor-weight"></select>
+        <input type="number" class="size-input weight-number-input" id="editor-weight-input" style="display:none" min="100" max="900" step="1">
       </div>
       <div class="control-row">
         <input type="number" class="size-input" id="editor-size" min="8" max="72" step="1" title="Font size">
@@ -610,8 +622,10 @@ export function getWebviewContent(
     <div class="controls">
       <div class="control-row">
         <select class="weight-select" id="terminal-weight"></select>
+        <input type="number" class="size-input weight-number-input" id="terminal-weight-input" style="display:none" min="100" max="900" step="1">
         <span class="weight-separator">+</span>
         <select class="weight-select" id="terminal-bold-weight" title="Bold text weight"></select>
+        <input type="number" class="size-input weight-number-input" id="terminal-bold-weight-input" style="display:none" min="100" max="900" step="1">
       </div>
       <div class="control-row">
         <input type="number" class="size-input" id="terminal-size" min="8" max="72" step="1" title="Font size">
@@ -639,6 +653,7 @@ export function getWebviewContent(
     let selectedPreviewFont = null;
     let currentEditorFont = null;
     let currentTerminalFont = null;
+    let preserveFontSettings = false;
 
     // Track whether settings have changed since last font selection (per tab)
     const dirty = {
@@ -699,6 +714,7 @@ export function getWebviewContent(
       const size = parseInt(e.target.value, 10);
       if (size >= 8 && size <= 72) {
         dirty.editor = true;
+        settings.editorFontSize = size;
         vscode.postMessage({ command: 'setEditorFontSize', size });
       }
     });
@@ -707,6 +723,7 @@ export function getWebviewContent(
       const size = parseInt(e.target.value, 10);
       if (size >= 8 && size <= 72) {
         dirty.terminal = true;
+        settings.terminalFontSize = size;
         vscode.postMessage({ command: 'setTerminalFontSize', size });
       }
     });
@@ -714,14 +731,52 @@ export function getWebviewContent(
     // Font weight selects
     document.getElementById('editor-weight').addEventListener('change', (e) => {
       dirty.editor = true;
+      settings.editorFontWeight = e.target.value;
       vscode.postMessage({ command: 'setEditorFontWeight', weight: e.target.value });
       updatePreview();
     });
 
     document.getElementById('terminal-weight').addEventListener('change', (e) => {
       dirty.terminal = true;
+      settings.terminalFontWeight = e.target.value;
       vscode.postMessage({ command: 'setTerminalFontWeight', weight: e.target.value });
       updatePreview();
+    });
+
+    // Variable font weight number inputs
+    document.getElementById('editor-weight-input').addEventListener('change', (e) => {
+      const val = parseInt(e.target.value, 10);
+      const min = parseInt(e.target.min, 10) || 100;
+      const max = parseInt(e.target.max, 10) || 900;
+      if (val >= min && val <= max) {
+        dirty.editor = true;
+        settings.editorFontWeight = String(val);
+        vscode.postMessage({ command: 'setEditorFontWeight', weight: String(val) });
+        updatePreview();
+      }
+    });
+
+    document.getElementById('terminal-weight-input').addEventListener('change', (e) => {
+      const val = parseInt(e.target.value, 10);
+      const min = parseInt(e.target.min, 10) || 100;
+      const max = parseInt(e.target.max, 10) || 900;
+      if (val >= min && val <= max) {
+        dirty.terminal = true;
+        settings.terminalFontWeight = String(val);
+        vscode.postMessage({ command: 'setTerminalFontWeight', weight: String(val) });
+        updatePreview();
+      }
+    });
+
+    document.getElementById('terminal-bold-weight-input').addEventListener('change', (e) => {
+      const val = parseInt(e.target.value, 10);
+      const min = parseInt(e.target.min, 10) || 100;
+      const max = parseInt(e.target.max, 10) || 900;
+      if (val >= min && val <= max) {
+        dirty.terminal = true;
+        settings.terminalBoldWeight = String(val);
+        vscode.postMessage({ command: 'setTerminalBoldWeight', weight: String(val) });
+      }
     });
 
     // Line height inputs
@@ -729,6 +784,7 @@ export function getWebviewContent(
       const lineHeight = parseInt(e.target.value, 10);
       if (lineHeight >= 0 && lineHeight <= 100) {
         dirty.editor = true;
+        settings.editorLineHeight = lineHeight;
         vscode.postMessage({ command: 'setEditorLineHeight', lineHeight });
       }
     });
@@ -737,6 +793,7 @@ export function getWebviewContent(
       const lineHeight = parseFloat(e.target.value);
       if (lineHeight >= 1 && lineHeight <= 3) {
         dirty.terminal = true;
+        settings.terminalLineHeight = lineHeight;
         vscode.postMessage({ command: 'setTerminalLineHeight', lineHeight });
       }
     });
@@ -746,6 +803,7 @@ export function getWebviewContent(
       const letterSpacing = parseFloat(e.target.value);
       if (letterSpacing >= -5 && letterSpacing <= 20) {
         dirty.editor = true;
+        settings.editorLetterSpacing = letterSpacing;
         vscode.postMessage({ command: 'setEditorLetterSpacing', letterSpacing });
       }
     });
@@ -754,6 +812,7 @@ export function getWebviewContent(
       const letterSpacing = parseFloat(e.target.value);
       if (letterSpacing >= -5 && letterSpacing <= 20) {
         dirty.terminal = true;
+        settings.terminalLetterSpacing = letterSpacing;
         vscode.postMessage({ command: 'setTerminalLetterSpacing', letterSpacing });
       }
     });
@@ -761,6 +820,7 @@ export function getWebviewContent(
     // Terminal bold weight select
     document.getElementById('terminal-bold-weight').addEventListener('change', (e) => {
       dirty.terminal = true;
+      settings.terminalBoldWeight = e.target.value;
       vscode.postMessage({ command: 'setTerminalBoldWeight', weight: e.target.value });
     });
 
@@ -846,6 +906,9 @@ export function getWebviewContent(
 
       const restoreBtn = document.getElementById('menu-restore');
       restoreBtn.disabled = !hasSettingsChanges();
+
+      const preserveBtn = document.getElementById('menu-preserve-settings');
+      preserveBtn.textContent = (preserveFontSettings ? '\u2713 ' : '') + 'Preserve font settings';
     }
 
     // Menu actions
@@ -863,6 +926,11 @@ export function getWebviewContent(
     document.getElementById('menu-reset-defaults').addEventListener('click', () => {
       closeMenu();
       vscode.postMessage({ command: 'resetDefaults' });
+    });
+
+    document.getElementById('menu-preserve-settings').addEventListener('click', () => {
+      closeMenu();
+      vscode.postMessage({ command: 'togglePreserveFontSettings' });
     });
 
     function hasSettingsChanges() {
@@ -929,7 +997,29 @@ export function getWebviewContent(
 
     function populateWeightDropdown(selectId, fontName, currentWeight) {
       const select = document.getElementById(selectId);
+      const numberInput = document.getElementById(selectId + '-input');
       const font = findFontByName(fontName);
+
+      // Check if this font is variable and has weight range
+      if (font && font.isVariable && numberInput) {
+        const wMin = font.weightMin || 100;
+        const wMax = font.weightMax || 900;
+        select.style.display = 'none';
+        numberInput.style.display = '';
+        numberInput.min = wMin;
+        numberInput.max = wMax;
+        numberInput.placeholder = wMin + '\u2013' + wMax;
+        // Convert current weight to numeric
+        const numWeight = currentWeight === 'normal' ? 400 : currentWeight === 'bold' ? 700 : parseInt(currentWeight, 10);
+        numberInput.value = isNaN(numWeight) ? 400 : numWeight;
+        return;
+      }
+
+      // Static font: show dropdown, hide number input
+      if (numberInput) {
+        numberInput.style.display = 'none';
+      }
+      select.style.display = '';
 
       // Clear existing options
       select.textContent = '';
@@ -952,8 +1042,30 @@ export function getWebviewContent(
       select.value = hasCurrentWeight ? normalizedCurrent : weights[0].value;
     }
 
-    function populateBoldWeightDropdown(currentWeight) {
+    function populateBoldWeightDropdown(currentWeight, fontName) {
       const select = document.getElementById('terminal-bold-weight');
+      const numberInput = document.getElementById('terminal-bold-weight-input');
+      const font = fontName ? findFontByName(fontName) : null;
+
+      // Variable font: show number input
+      if (font && font.isVariable && numberInput) {
+        const wMin = font.weightMin || 100;
+        const wMax = font.weightMax || 900;
+        select.style.display = 'none';
+        numberInput.style.display = '';
+        numberInput.min = wMin;
+        numberInput.max = wMax;
+        numberInput.placeholder = wMin + '\u2013' + wMax;
+        const numWeight = currentWeight === 'normal' ? 400 : currentWeight === 'bold' ? 700 : parseInt(currentWeight, 10);
+        numberInput.value = isNaN(numWeight) ? 700 : numWeight;
+        return;
+      }
+
+      // Static font: show dropdown
+      if (numberInput) {
+        numberInput.style.display = 'none';
+      }
+      select.style.display = '';
       select.textContent = '';
 
       const weights = [
@@ -1119,6 +1231,19 @@ export function getWebviewContent(
             const fontName = font.name;
             selectedPreviewFont = fontName;
 
+            // Auto-save settings for the previous font if preserve is enabled
+            if (preserveFontSettings) {
+              const prevFont = target === 'editor' ? currentEditorFont : currentTerminalFont;
+              if (prevFont && prevFont in favorites) {
+                vscode.postMessage({
+                  command: 'saveFavoriteSettings',
+                  fontName: prevFont,
+                  context: target,
+                  settings: getCurrentSettingsForContext(target),
+                });
+              }
+            }
+
             // Immediately update selection highlight
             list.querySelectorAll('.font-item.selected').forEach(el => el.classList.remove('selected'));
             list.querySelectorAll('[data-font="' + fontName + '"]').forEach(el => el.classList.add('selected'));
@@ -1165,6 +1290,12 @@ export function getWebviewContent(
               }
             } else {
               currentTerminalFont = fontName;
+
+              // Update bold weight dropdown for this font
+              const boldWeight = savedSettings && savedSettings.boldWeight
+                ? savedSettings.boldWeight
+                : settings.terminalBoldWeight;
+              populateBoldWeightDropdown(boldWeight, fontName);
 
               // Update local settings immediately (don't wait for extension round-trip)
               settings.terminalFont = fontName;
@@ -1271,7 +1402,7 @@ export function getWebviewContent(
       populateWeightDropdown('terminal-weight', terminalFontName, settings.terminalFontWeight);
 
       // Populate terminal bold weight dropdown
-      populateBoldWeightDropdown(settings.terminalBoldWeight);
+      populateBoldWeightDropdown(settings.terminalBoldWeight, terminalFontName);
 
       // Update ligature checkboxes
       document.getElementById('editor-ligatures').checked = !!settings.editorLigatures;
@@ -1294,7 +1425,11 @@ export function getWebviewContent(
       if (selectedPreviewFont) {
         fontFamily = "'" + selectedPreviewFont + "', monospace";
         fontName = selectedPreviewFont;
-        fontWeight = document.getElementById(activeTab + '-weight').value || 'normal';
+        const weightInput = document.getElementById(activeTab + '-weight-input');
+        const weightSelect = document.getElementById(activeTab + '-weight');
+        fontWeight = (weightInput && weightInput.style.display !== 'none')
+          ? weightInput.value
+          : (weightSelect.value || 'normal');
       } else if (activeTab === 'editor') {
         fontFamily = settings.editorFont || 'monospace';
         fontName = extractFontFamily(fontFamily);
@@ -1334,6 +1469,7 @@ export function getWebviewContent(
           previousSettings = message.previousSettings;
           favorites = message.favorites || {};
           platform = message.platform || '';
+          preserveFontSettings = message.preserveFontSettings || false;
 
           // Hide Variable and Latin filters on Windows (no metadata available)
           if (platform === 'win32') {
@@ -1363,6 +1499,9 @@ export function getWebviewContent(
           favorites = message.favorites || {};
           renderFontList('editor', document.getElementById('editor-search').value, message.toggledFont);
           renderFontList('terminal', document.getElementById('terminal-search').value, message.toggledFont);
+          break;
+        case 'preserveFontSettingsUpdated':
+          preserveFontSettings = message.preserveFontSettings;
           break;
       }
     });

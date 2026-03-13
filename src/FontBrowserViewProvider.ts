@@ -8,7 +8,8 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'fontBrowser.mainView';
   private static readonly FAVORITES_KEY = 'fontBrowser.favorites';
   private static readonly ACTIVE_TAB_KEY = 'fontBrowser.activeTab';
-  private static readonly BUILD_ID = 'fast-faraday';
+  private static readonly PRESERVE_SETTINGS_KEY = 'fontBrowser.preserveFontSettings';
+  private static readonly BUILD_ID = 'deft-feynman';
 
   private _view?: vscode.WebviewView;
   private _previousSettings?: ReturnType<typeof this._getCurrentSettings>;
@@ -154,6 +155,28 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
         case 'updatePreview':
           this._previewProvider.updatePreview(message);
           break;
+        case 'togglePreserveFontSettings': {
+          const current = this._context.globalState.get<boolean>(FontBrowserViewProvider.PRESERVE_SETTINGS_KEY) || false;
+          const newValue = !current;
+          await this._context.globalState.update(FontBrowserViewProvider.PRESERVE_SETTINGS_KEY, newValue);
+          if (this._view) {
+            this._view.webview.postMessage({
+              command: 'preserveFontSettingsUpdated',
+              preserveFontSettings: newValue,
+            });
+          }
+          break;
+        }
+        case 'saveFavoriteSettings': {
+          const favorites = this._getFavorites();
+          if (message.fontName in favorites) {
+            favorites[message.fontName][message.context as 'editor' | 'terminal'] = message.settings;
+            await this._setFavorites(favorites);
+            // Send updated favorites back so webview has latest saved settings
+            this._sendFavoritesUpdate();
+          }
+          break;
+        }
       }
     });
   }
@@ -185,6 +208,7 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
       favorites: this._getFavorites(),
       platform: process.platform,
       activeTab: this._context.globalState.get<string>(FontBrowserViewProvider.ACTIVE_TAB_KEY) || 'editor',
+      preserveFontSettings: this._context.globalState.get<boolean>(FontBrowserViewProvider.PRESERVE_SETTINGS_KEY) || false,
       buildId: FontBrowserViewProvider.BUILD_ID,
     });
   }

@@ -21,6 +21,8 @@ export interface FontInfo {
   hasTextureHealing: boolean;
   supportsLatin: boolean;
   weights: FontWeight[];
+  weightMin?: number;
+  weightMax?: number;
 }
 
 // Map fontconfig weight values to CSS weight values
@@ -450,6 +452,26 @@ export async function getSystemFonts(): Promise<FontInfo[]> {
     return weights;
   };
 
+  // Helper to get weight range for variable fonts (returns CSS weight values)
+  const getWeightRange = (fontName: string): { weightMin: number; weightMax: number } | null => {
+    for (const [family, styles] of fontStyles.entries()) {
+      const baseName = extractFamilyName(family);
+      if (baseName.toLowerCase() === fontName.toLowerCase() ||
+          family.toLowerCase() === fontName.toLowerCase()) {
+        const variableStyle = styles.find(s => s.isVariable);
+        if (variableStyle && variableStyle.weightMin !== undefined && variableStyle.weightMax !== undefined) {
+          // Convert fontconfig weight values to CSS values
+          const minCSS = convertFcWeightToCSS(variableStyle.weightMin);
+          const maxCSS = convertFcWeightToCSS(variableStyle.weightMax);
+          const minVal = minCSS ? (minCSS.value === 'normal' ? 400 : minCSS.value === 'bold' ? 700 : parseInt(minCSS.value, 10)) : 100;
+          const maxVal = maxCSS ? (maxCSS.value === 'normal' ? 400 : maxCSS.value === 'bold' ? 700 : parseInt(maxCSS.value, 10)) : 900;
+          return { weightMin: minVal, weightMax: maxVal };
+        }
+      }
+    }
+    return null;
+  };
+
   // Add installed fonts from curated lists (for proper categorization)
   for (const [category, fonts] of Object.entries(FONTS_BY_CATEGORY)) {
     for (const name of fonts) {
@@ -461,16 +483,19 @@ export async function getSystemFonts(): Promise<FontInfo[]> {
 
       addedFamilies.add(lowerName);
 
+      const isVar = isFontVariable(name);
+      const weightRange = isVar ? getWeightRange(name) : null;
       result.push({
         name,
         category: category as FontCategory,
         isInstalled: true,
-        isVariable: isFontVariable(name),
+        isVariable: isVar,
         hasLigatures: hasLigatureSupport(name),
         hasIcons: hasIconSupport(name),
         hasTextureHealing: hasTextureHealingSupport(name),
         supportsLatin: true, // Curated fonts are all Latin-script
         weights: getWeightsForFont(name),
+        ...(weightRange && { weightMin: weightRange.weightMin, weightMax: weightRange.weightMax }),
       });
     }
   }
@@ -500,16 +525,19 @@ export async function getSystemFonts(): Promise<FontInfo[]> {
     }
 
     addedFamilies.add(lowerName);
+    const isVar = isFontVariable(family);
+    const weightRange = isVar ? getWeightRange(family) : null;
     result.push({
       name: family,
       category,
       isInstalled: true,
-      isVariable: isFontVariable(family),
+      isVariable: isVar,
       hasLigatures: hasLigatureSupport(family),
       hasIcons: hasIconSupport(family),
       hasTextureHealing: hasTextureHealingSupport(family),
       supportsLatin: fontSupportsLatin(family),
       weights: getWeightsForFont(family),
+      ...(weightRange && { weightMin: weightRange.weightMin, weightMax: weightRange.weightMax }),
     });
   }
 
