@@ -566,7 +566,7 @@ export function getWebviewContent(
         <input type="number" class="size-input weight-number-input" id="editor-weight-input" style="display:none" min="100" max="900" step="10">
       </div>
       <div class="control-row">
-        <input type="number" class="size-input" id="editor-size" min="8" max="72" step="1" title="Font size">
+        <input type="number" class="size-input" id="editor-size" min="8" max="72" step="0.5" title="Font size">
         <span class="unit-label">px</span>
         <input type="number" class="size-input" id="editor-line-height" min="-0.7" max="100" step="1" title="Line height (0 = auto)">
         <span class="unit-label">lh</span>
@@ -628,7 +628,7 @@ export function getWebviewContent(
         <input type="number" class="size-input weight-number-input" id="terminal-bold-weight-input" style="display:none" min="100" max="900" step="10">
       </div>
       <div class="control-row">
-        <input type="number" class="size-input" id="terminal-size" min="8" max="72" step="1" title="Font size">
+        <input type="number" class="size-input" id="terminal-size" min="8" max="72" step="0.5" title="Font size">
         <span class="unit-label">px</span>
         <input type="number" class="size-input" id="terminal-line-height" min="1" max="3" step="0.1" title="Line height (1 = default)">
         <span class="unit-label">lh</span>
