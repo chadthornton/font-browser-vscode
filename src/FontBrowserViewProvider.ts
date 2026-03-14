@@ -9,7 +9,7 @@ export class FontBrowserViewProvider implements vscode.WebviewViewProvider {
   private static readonly FAVORITES_KEY = 'fontBrowser.favorites';
   private static readonly ACTIVE_TAB_KEY = 'fontBrowser.activeTab';
   private static readonly PRESERVE_SETTINGS_KEY = 'fontBrowser.preserveFontSettings';
-  private static readonly BUILD_ID = 'lush-kepler';
+  private static readonly BUILD_ID = 'glad-gauss';
 
   private _view?: vscode.WebviewView;
   private _previousSettings?: ReturnType<typeof this._getCurrentSettings>;

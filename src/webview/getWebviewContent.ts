@@ -563,12 +563,12 @@ export function getWebviewContent(
     <div class="controls">
       <div class="control-row">
         <select class="weight-select" id="editor-weight"></select>
-        <input type="number" class="size-input weight-number-input" id="editor-weight-input" style="display:none" min="100" max="900" step="1">
+        <input type="number" class="size-input weight-number-input" id="editor-weight-input" style="display:none" min="100" max="900" step="10">
       </div>
       <div class="control-row">
         <input type="number" class="size-input" id="editor-size" min="8" max="72" step="1" title="Font size">
         <span class="unit-label">px</span>
-        <input type="number" class="size-input" id="editor-line-height" min="0" max="100" step="1" title="Line height (0 = auto)">
+        <input type="number" class="size-input" id="editor-line-height" min="-0.7" max="100" step="1" title="Line height (0 = auto)">
         <span class="unit-label">lh</span>
         <input type="number" class="size-input" id="editor-letter-spacing" min="-5" max="20" step="0.5" title="Letter spacing">
         <span class="unit-label">ls</span>
@@ -622,10 +622,10 @@ export function getWebviewContent(
     <div class="controls">
       <div class="control-row">
         <select class="weight-select" id="terminal-weight"></select>
-        <input type="number" class="size-input weight-number-input" id="terminal-weight-input" style="display:none" min="100" max="900" step="1">
+        <input type="number" class="size-input weight-number-input" id="terminal-weight-input" style="display:none" min="100" max="900" step="10">
         <span class="weight-separator">+</span>
         <select class="weight-select" id="terminal-bold-weight" title="Bold text weight"></select>
-        <input type="number" class="size-input weight-number-input" id="terminal-bold-weight-input" style="display:none" min="100" max="900" step="1">
+        <input type="number" class="size-input weight-number-input" id="terminal-bold-weight-input" style="display:none" min="100" max="900" step="10">
       </div>
       <div class="control-row">
         <input type="number" class="size-input" id="terminal-size" min="8" max="72" step="1" title="Font size">
@@ -1340,6 +1340,13 @@ export function getWebviewContent(
 
           list.appendChild(item);
         });
+
+        // Add spacer after favorites and monospace for visual separation
+        if (key === 'favorites' || key === 'monospace') {
+          const spacer = document.createElement('div');
+          spacer.style.height = '24px';
+          list.appendChild(spacer);
+        }
       });
 
       // Scroll anchoring: restore position after re-render
